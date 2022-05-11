@@ -1,0 +1,196 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+# Global variables
+
+Description:
+  'Duka Pepe VPC Cloud Formation template. This template will create both public and private subnets.'
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - 
+        Label:
+          default: "VPC CIDR"
+        Parameters:
+          - VpcCIDR 
+      -
+        Label:
+          default: Subnet CIDR 
+        Parameters:
+          - PublicSubnetCIDR
+          - PrivateSubnetCIDR
+      - 
+        Label:
+          default: "SSH CIDR"
+        Parameters:
+          - SSHLocations
+
+Parameters:
+    VpcCIDR:
+      Default: 10.0.0.0/16
+      Description: "This is the IP ranges for the UAT VPC (Classless Inter Domain Routing)"
+      Type: String
+
+    PublicSubnetCIDR:
+      Default: 10.0.0.0/24
+      Description: "This is the IP ranges for the UAT public subnet 'public subnet A' we will start with just one subnet."
+      Type: String  
+
+    PrivateSubnetCIDR: 
+      Default: 10.0.1.0/24
+      Description: "This is the IP ranges for the UAT privare subnet 'private subnet B' we will start with just one subnet."
+      Type: String 
+
+    SSHLocations: 
+      AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})' 
+      ConstraintDescription: 'Validate IP addresses of pattern x.x.x.x/x'
+      Default: 0.0.0.0/0
+      Description: 'Range of IP addresses that can be used to access EC2s(web servers) via SSH'
+      MaxLength: '18'
+      MinLength: '9'
+      Type: String
+
+
+Resources:
+   VPC:
+      Type: AWS::EC2::VPC
+      Properties: 
+        CidrBlock: !Ref VpcCIDR
+        EnableDnsHostnames: false
+        EnableDnsSupport: false
+        InstanceTenancy: default 
+        Tags: 
+          - Key: Name 
+            Value: UAT VPC 
+
+   InternetGateway:
+      Type: AWS::EC2::InternetGateway
+      Properties: 
+        Tags: 
+          - Key: Name
+            Value: UAT Internet Gateway 
+
+   InternetGatewayAttachement:
+      Type: AWS::EC2::VPCGatewayAttachment
+      Properties: 
+        InternetGatewayId: !Ref InternetGateway
+        VpcId: !Ref VPC
+
+   PublicSubnetA:
+      Type: AWS::EC2::Subnet
+      Properties: 
+        AssignIpv6AddressOnCreation: Boolean
+        AvailabilityZone: !Select [ 0, !GetAZs '' ]
+        CidrBlock: !Ref PublicSubnetCIDR
+        MapPublicIpOnLaunch: true
+        Tags: 
+          - Key: Name
+            Value: UAT public subnet A
+        VpcId: !Ref VPC 
+
+   PublicRoutingTable:
+      Type: AWS::EC2::RouteTable
+      Properties: 
+        Tags: 
+          - Key: Name
+            Value: Public routing table
+        VpcId: !Ref VPC 
+
+   PublicRoute:
+      Type: AWS::EC2::Route
+      Properties: 
+        DestinationCidrBlock: 0.0.0.0/0 
+        GatewayId: !Ref InternetGateway
+        RouteTableId: !Ref PublicRoutingTable
+
+   PublicSubnetRouteTableAssociation:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties: 
+        RouteTableId: !Ref PublicRoutingTable
+        SubnetId: !Ref PublicSubnetA
+
+   PrivateSubnetA:
+      Type: AWS::EC2::Subnet
+      Properties: 
+        AssignIpv6AddressOnCreation: Boolean
+        AvailabilityZone: !Select [ 0, !GetAZs '' ]
+        CidrBlock: !Ref PrivateSubnetCIDR
+        MapPublicIpOnLaunch: false
+        Tags: 
+          - Key: Name
+            Value: UAT private subnet A
+        VpcId: !Ref VPC 
+
+   ApplicationLBSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties: 
+          GroupDescription: Enable HTTP and HTTPS access via port 80 and 443
+          GroupName: Group A ALB 
+          SecurityGroupIngress: 
+            - IpProtocol: tcp 
+              FromPort: 80
+              ToPort: 80
+              CidrIp: 0.0.0.0/0
+            - IpProtocol: tcp 
+              FromPort: 443
+              ToPort: 443
+              CidrIp: 0.0.0.0/0  
+          Tags: 
+            - Key: Name 
+              Value: Application Load Balancer SecurityGroup
+          VpcId: !Ref VPC
+
+   SSHSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties: 
+          GroupDescription: Enable SSH access via port 22
+          GroupName: Group A SSH SecurityGroup
+          SecurityGroupIngress: 
+            - IpProtocol: tcp 
+              FromPort: 22
+              ToPort: 22
+              CidrIp: !Ref SSHLocations
+          Tags: 
+            - Key: Name 
+              Value: Group A SSH SecurityGroup
+          VpcId: !Ref VPC         
+
+   WebserverSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties: 
+          GroupDescription: Accept traffic from ALB 
+          SecurityGroupIngress: 
+            - IpProtocol: tcp 
+              FromPort: 80
+              ToPort: 80
+              SourceSecurityGroupId: !Ref ApplicationLBSecurityGroup
+            - IpProtocol: tcp 
+              FromPort: 443
+              ToPort: 443
+              SourceSecurityGroupId: !Ref ApplicationLBSecurityGroup  
+            - IpProtocol: tcp 
+              FromPort: 22
+              ToPort: 22
+              CidrIp: !Ref SSHSecurityGroup   
+          Tags: 
+            - Key: Name 
+              Value: Web Server SecurityGroup
+          VpcId: !Ref VPC
+
+   DatabaseSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties: 
+          GroupDescription: Enable access to the database
+          GroupName: Group A Database SecurityGroup
+          SecurityGroupIngress: 
+            - IpProtocol: tcp 
+              FromPort: 3306
+              ToPort: 3306
+              SourceSecurityGroupId: !Ref WebserverSecurityGroup
+          Tags: 
+            - Key: Name 
+              Value: Group A Database SecurityGroup
+          VpcId: !Ref VPC        
+
+
+#Outputs:
