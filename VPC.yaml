@@ -56,8 +56,8 @@ Resources:
       Type: AWS::EC2::VPC
       Properties: 
         CidrBlock: !Ref VpcCIDR
-        EnableDnsHostnames: false
-        EnableDnsSupport: false
+        EnableDnsHostnames: true
+        EnableDnsSupport: true
         InstanceTenancy: default 
         Tags: 
           - Key: Name 
@@ -79,8 +79,7 @@ Resources:
    PublicSubnetA:
       Type: AWS::EC2::Subnet
       Properties: 
-        AssignIpv6AddressOnCreation: Boolean
-        AvailabilityZone: !Select [ 0, !GetAZs '' ]
+        AvailabilityZone: !Select [ 3, !GetAZs '' ]
         CidrBlock: !Ref PublicSubnetCIDR
         MapPublicIpOnLaunch: true
         Tags: 
@@ -112,8 +111,7 @@ Resources:
    PrivateSubnetA:
       Type: AWS::EC2::Subnet
       Properties: 
-        AssignIpv6AddressOnCreation: Boolean
-        AvailabilityZone: !Select [ 0, !GetAZs '' ]
+        AvailabilityZone: !Select [ 3, !GetAZs '' ]
         CidrBlock: !Ref PrivateSubnetCIDR
         MapPublicIpOnLaunch: false
         Tags: 
@@ -125,7 +123,6 @@ Resources:
         Type: AWS::EC2::SecurityGroup
         Properties: 
           GroupDescription: Enable HTTP and HTTPS access via port 80 and 443
-          GroupName: Group A ALB 
           SecurityGroupIngress: 
             - IpProtocol: tcp 
               FromPort: 80
@@ -144,7 +141,6 @@ Resources:
         Type: AWS::EC2::SecurityGroup
         Properties: 
           GroupDescription: Enable SSH access via port 22
-          GroupName: Group A SSH SecurityGroup
           SecurityGroupIngress: 
             - IpProtocol: tcp 
               FromPort: 22
@@ -171,7 +167,7 @@ Resources:
             - IpProtocol: tcp 
               FromPort: 22
               ToPort: 22
-              CidrIp: !Ref SSHSecurityGroup   
+              SourceSecurityGroupId: !Ref SSHSecurityGroup   
           Tags: 
             - Key: Name 
               Value: Web Server SecurityGroup
@@ -181,7 +177,6 @@ Resources:
         Type: AWS::EC2::SecurityGroup
         Properties: 
           GroupDescription: Enable access to the database
-          GroupName: Group A Database SecurityGroup
           SecurityGroupIngress: 
             - IpProtocol: tcp 
               FromPort: 3306
@@ -191,6 +186,5 @@ Resources:
             - Key: Name 
               Value: Group A Database SecurityGroup
           VpcId: !Ref VPC        
-
 
 #Outputs:
