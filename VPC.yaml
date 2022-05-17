@@ -187,4 +187,60 @@ Resources:
               Value: Group A Database SecurityGroup
           VpcId: !Ref VPC        
 
-#Outputs:
+Outputs:
+   VPC:
+     Description: Export VPC ID 
+     Export:
+       Name: !Sub ${AWS::StackName}-VPC
+     Value: !Ref VPC 
+
+   PublicSubnetA:
+     Description: Export public subnet A ID 
+     Export:
+       Name: !Sub ${AWS::StackName}-PublicSubnetA
+     Value: !Ref PublicSubnetA    
+
+   PrivateSubnetA:
+     Description: Export private subnet A ID 
+     Export:
+       Name: !Sub ${AWS::StackName}-PrivateSubnetA
+     Value: !Ref PrivateSubnetA    
+
+   ApplicationLBSecurityGroup:
+     Description: Export Application LB Security Group ID 
+     Export:
+       Name: !Sub ${AWS::StackName}-ApplicationLBSecurityGroup
+     Value: !Ref ApplicationLBSecurityGroup
+
+   SSHSecurityGroup:
+     Description: Export SSH SecurityGroup ID 
+     Export:
+       Name: !Sub ${AWS::StackName}-SSHSecurityGroup
+     Value: !Ref SSHSecurityGroup
+
+   WebserverSecurityGroup:
+     Description: Export Web server SecurityGroup ID 
+     Export:
+       Name: !Sub ${AWS::StackName}-WebserverSecurityGroup
+     Value: !Ref WebserverSecurityGroup      
+
+   DatabaseSecurityGroup:
+     Description: Export Database SecurityGroup ID 
+     Export:
+       Name: !Sub ${AWS::StackName}-DatabaseSecurityGroup
+     Value: !Ref DatabaseSecurityGroup
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
