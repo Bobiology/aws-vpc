@@ -1,44 +1,52 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: UAT EKS cluster
+Description: EKS UAT Cluster
 Parameters:
   EKSClusterName:
     Type: String
     Description: uat-a-cluster
-    Default: eks-cluster
+    Default: DP-EKS-UAT-CLUSTER
   NumWorkerNodes:
     Type: Number
     Description: Number of worker nodes to create
     Default: 2
   WorkerNodesInstanceType:
     Type: String
-    Description: EC2 instance type for the worker nodes
-    Default: t3.medium  
+    Description: EC2 worker nodes instance Type
+    Default: t2.medium  
   KeyPairName:
     Type: String
     Description: Name of an existing EC2 key pair for SSH-access to the worker nodes.
-    Default: uat-eks-keys  
+    Default: DP-EKS-KEY-PAIR 
+  ExportVpcStackName:
+     Description: Name of the VPC stack to export value from
+     Type: String
+  LatestAmiId:
+    Description: Region specific image from the Parameter Store
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+
 Mappings:
   VpcIpRanges:
     Option1:
       VPC: 10.100.0.0/16    
       PublicSubnetA : 10.100.0.0/20
-      PrivateSubnetA: 10.100.32.0/20
+      PrivateSubnetA: 10.100.1.0/20
   EksAmiIds:    
-    us-east-2:
-      Standard: ami-0b614a5d911900a9b
+    us-east-1:
+      AMI: ami-0ed01d017547d7b22
 
 Resources:
   ControlPlane:
     Type: AWS::EKS::Cluster
     Properties:
-      Name: !Ref AWS::StackName
+      Name: EKS_UAT
       Version: "1.19"
       RoleArn: !GetAtt ControlPlaneRole.Arn
       ResourcesVpcConfig:
         SecurityGroupIds:
-          - !Ref ControlPlaneSecurityGroup
+          Fn::ImportValue: !Sub ${ExportVpcStackName}-ControlPlaneSecurityGroup
         SubnetIds:
-          - !Ref PrivateSubnetA
+          Fn::ImportValue: !Sub ${ExportVpcStackName}-PrivateSubnetA
   ControlPlaneRole:
     Type: AWS::IAM::Role
     Properties:
@@ -56,21 +64,14 @@ Resources:
   #============================================================================#
   # Control plane security group
   #============================================================================#
-  ControlPlaneSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Security group for the elastic network interfaces between the control plane and the worker nodes
-      VpcId: !Ref VPC
-      Tags:
-        - Key: Name
-          Value: !Sub "${AWS::StackName}-ControlPlaneSecurityGroup"
-
   ControlPlaneIngressFromWorkerNodesHttps:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       Description: Allow incoming HTTPS traffic (TCP/443) from worker nodes (for API server)
-      GroupId: !Ref ControlPlaneSecurityGroup
-      SourceSecurityGroupId: !Ref WorkerNodesSecurityGroup
+      GroupId: 
+        Fn::ImportValue: !Sub ${ExportVpcStackName}-ControlPlaneSecurityGroup
+      SourceSecurityGroupId: 
+        Fn::ImportValue: !Sub ${ExportVpcStackName}-WorkerNodesSecurityGroup 
       IpProtocol: tcp
       ToPort: 443
       FromPort: 443
@@ -78,8 +79,10 @@ Resources:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
       Description: Allow outgoing kubelet traffic (TCP/10250) to worker nodes
-      GroupId: !Ref ControlPlaneSecurityGroup
-      DestinationSecurityGroupId: !Ref WorkerNodesSecurityGroup
+      GroupId: 
+        Fn::ImportValue: !Sub ${ExportVpcStackName}-ControlPlaneSecurityGroup
+      DestinationSecurityGroupId:
+        Fn::ImportValue: !Sub ${ExportVpcStackName}-WorkerNodesSecurityGroup
       IpProtocol: tcp
       FromPort: 10250
       ToPort: 10250
@@ -87,8 +90,10 @@ Resources:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
       Description: Allow outgoing HTTPS traffic (TCP/442) to worker nodes (for pods running extension API servers)
-      GroupId: !Ref ControlPlaneSecurityGroup
-      DestinationSecurityGroupId: !Ref WorkerNodesSecurityGroup
+      GroupId: 
+         Fn::ImportValue: !Sub ${ExportVpcStackName}-ControlPlaneSecurityGroup
+      DestinationSecurityGroupId:
+         Fn::ImportValue: !Sub ${ExportVpcStackName}-WorkerNodesSecurityGroup
       IpProtocol: tcp
       FromPort: 443
       ToPort: 443
@@ -96,29 +101,23 @@ Resources:
   # Worker nodes security group
   # Note: default egress rule (allow all traffic to all destinations) applies
   #============================================================================#
-  WorkerNodesSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Security group for all the worker nodes
-      VpcId: !Ref VPC
-      Tags:
-        - Key: Name
-          Value: !Sub '${AWS::StackName}-WorkerNodesSecurityGroup'
-        - Key: !Sub 'kubernetes.io/cluster/${ControlPlane} ''
-          Value: "owned"
   WorkerNodesIngressFromWorkerNodes:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       Description: Allow all incoming traffic from other worker nodes
-      GroupId: !Ref WorkerNodesSecurityGroup
-      SourceSecurityGroupId: !Ref WorkerNodesSecurityGroup
+      GroupId: 
+         Fn::ImportValue: !Sub ${ExportVpcStackName}-ControlPlaneSecurityGroup
+      SourceSecurityGroupId: 
+         Fn::ImportValue: !Sub ${ExportVpcStackName}-WorkerNodesSecurityGroup
       IpProtocol: "-1"
   WorkerNodesIngressFromControlPlaneKubelet:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       Description: Allow incoming kubelet traffic (TCP/10250) from control plane 
-      GroupId: !Ref WorkerNodesSecurityGroup
-      SourceSecurityGroupId: !Ref ControlPlaneSecurityGroup
+      GroupId: 
+        Fn::ImportValue: !Sub ${ExportVpcStackName}-WorkerNodesSecurityGroup
+      SourceSecurityGroupId: 
+        Fn::ImportValue: !Sub ${ExportVpcStackName}-ControlPlaneSecurityGroup
       IpProtocol: tcp
       FromPort: 10250
       ToPort: 10250
@@ -126,8 +125,10 @@ Resources:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       Description: Allow incoming HTTPS traffic (TCP/443) from control plane (for pods running extension API servers)
-      GroupId: !Ref WorkerNodesSecurityGroup
-      SourceSecurityGroupId: !Ref ControlPlaneSecurityGroup
+      GroupId: 
+        Fn::ImportValue: !Sub ${ExportVpcStackName}-WorkerNodesSecurityGroup
+      SourceSecurityGroupId: 
+        Fn::ImportValue: !Sub ${ExportVpcStackName}-ControlPlaneSecurityGroup
       IpProtocol: tcp
       FromPort: 443
       ToPort: 443
@@ -135,7 +136,7 @@ Resources:
   # Worker nodes (auto-scaling group)
   #============================================================================#
   WorkerNodesAutoScalingGroup:
-    Type:   
+    Type: AWS::AutoScaling::AutoScalingGroup
     UpdatePolicy:
       AutoScalingRollingUpdate:
         MinInstancesInService: 1
@@ -145,16 +146,13 @@ Resources:
       MinSize: !Ref NumWorkerNodes
       MaxSize: !Ref NumWorkerNodes
       VPCZoneIdentifier:
-        - !Ref PrivateSubnet1
-        - !Ref PrivateSubnet2
+        Fn::ImportValue: !Sub ${ExportVpcStackName}-PrivateSubnetA
+        Fn::ImportValue: !Sub ${ExportVpcStackName}-PrivateSubnetB
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-WorkerNodesAutoScalingGroup'
-          PropagateAtLaunch: true
-        # Without this tag, worker nodes are unable to join the cluster:
-        - Key: !Sub 'kubernetes.io/cluster/${ControlPlane}''
-          Value: 'owned'
-          PropagateAtLaunch: true
+          Value: WorkerNodesAutoScalingGroup
+      PropagateAtLaunch: true
+
   WorkerNodesRole:
     Type: AWS::IAM::Role
     Properties:
@@ -176,7 +174,7 @@ Resources:
     Type: AWS::EKS::Nodegroup
     DependsOn: ControlPlane
     Properties:
-      ClusterName: !Sub '${AWS::StackName}''
+      ClusterName: !Sub '${AWS::StackName}'
       NodeRole: !GetAtt WorkerNodesRole.Arn
       ScalingConfig:
         MinSize:
@@ -186,11 +184,12 @@ Resources:
         MaxSize:
           Ref: NumWorkerNodes
       Subnets:
-        - !Ref PrivateSubnet1
-        - !Ref PrivateSubnet2
+        Fn::ImportValue: !Sub ${ExportVpcStackName}-PrivateSubnetA
+        Fn::ImportValue: !Sub ${ExportVpcStackName}-PrivateSubnetB
       Tags:
         - Key: Name
           Value: 'WorkerNodesAutoScalingGroup'
+
   WorkerNodesLaunchConfiguration:
     Type: AWS::AutoScaling::LaunchConfiguration
     # Wait until cluster is ready before launching worker nodes
@@ -200,12 +199,12 @@ Resources:
       IamInstanceProfile: !Ref WorkerNodesInstanceProfile
       ImageId: !FindInMap
         - EksAmiIds
-        - !Ref AWS::Region
+        - !Ref LatestAmiId
         - Standard
       InstanceType: !Ref WorkerNodesInstanceType
       KeyName: !Ref KeyPairName
       SecurityGroups:
-        - !Ref WorkerNodesSecurityGroup
+        Fn::ImportValue: !Sub ${ExportVpcStackName}-WorkerNodesSecurityGroup
       # IMPORTANT NOTE: This code bootstrap some cfn settings on our ec2 machine, it require some parameters like
       # --stack <AWS::StackName>, --resource <NodeGroupName>, --region <AWS::region>
       # /usr/bin/ping -c 5 google.com ( To ensure that our node have internet connectivity via NATGateway )
@@ -220,6 +219,7 @@ Resources:
                             --resource WorkerNodeGroup \
                             --region ${AWS::Region}
             /usr/bin/ping -c 5 google.com 
+
   WorkerNodesInstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:

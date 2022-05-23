@@ -1,0 +1,166 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: Create applocation load balancer
+#=========================================
+Metadata:
+  AWS::CloudFormation::Interface: 
+    ParameterGroups:
+      - 
+        Label: 
+          default: "Certificate Arn"
+        Parameters:
+          - AcmCertificate
+      - 
+        Label: 
+          default: "Export VPC Stack Name"
+        Parameters:
+          - ExportVpcStackName
+      - 
+        Label: 
+          default: "EC2 Parameters"
+        Parameters:
+          - AmazonImageID
+          - InstanceType
+          - KeyName
+#=========================================
+Parameters:
+  AcmCertificate:
+    Description: Certificate's ARN
+    Type: String
+    Default: arn:aws:acm:us-west-2:053099938908:certificate/7ab32a59-acb2-426a-a0b7-700267d3b55b
+
+  ExportVpcStackName:
+    Description: Name of the VPC that exports values
+    Type: String
+    Default: vpc
+
+  InstanceType:
+    Description: WebServer EC2 instance type
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t1.micro
+      - t2.nano
+      - t2.micro
+    ConstraintDescription: Must be a valid EC2 instance type.
+
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
+    Type: 'AWS::EC2::KeyPair::KeyName'
+    ConstraintDescription: must be the name of an existing EC2 KeyPair.
+    Default: uat-eks-keys
+
+  AmazonImageID:
+    Description: The ID of the Amazon machine image (AMI)
+    Type: String
+    Default: ami-0ca285d4c2cda3300
+
+
+#=========================================
+Resources:
+#Create an Application Load Balancer
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: ApplicationLoadBalancer
+      SecurityGroups: 
+        - Fn::ImportValue: !Sub ${ExportVpcStackName}-ApplicationLBSecurityGroup
+      Subnets: 
+         - Fn::ImportValue: !Sub ${ExportVpcStackName}-PublicSubnetA
+         - Fn::ImportValue: !Sub ${ExportVpcStackName}-PublicSubnetB
+
+#Create a Listener on Port 80
+  ALBListenerNoSslCertificate:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - RedirectConfig:
+            Host: '#{host}'
+            Path: '/#{path}'
+            Port: '443'
+            Protocol: HTTPS
+            StatusCode: HTTP_301
+          Type: redirect
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+#Create a Listener on Port 443
+  ALBListenerSslCertificate:
+    Type : AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      Certificates: 
+        - CertificateArn: !Ref AcmCertificate
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref ALBTargetGroup
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 443
+      Protocol: HTTPS
+
+# Create a Target Group
+  ALBTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 10
+      HealthCheckPath: /
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      Matcher:
+        HttpCode: 200,302
+      Name: WebServers
+      Port: 80
+      Protocol: HTTP
+      Targets:
+        - Id: !Ref EC2InstanceA
+          Port: 80
+      TargetType: instance
+      UnhealthyThresholdCount: 5
+      VpcId: 
+         Fn::ImportValue: !Sub ${ExportVpcStackName}-VPC
+
+  EC2InstanceA:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      SubnetId:
+        Fn::ImportValue: !Sub ${ExportVpcStackName}-PrivateSubnetA
+      SecurityGroupIds:
+        - Fn::ImportValue: !Sub ${ExportVpcStackName}-WebserverSecurityGroup
+      KeyName: !Ref KeyName
+      ImageId: !Ref AmazonImageID 
+      Tags:
+        - Key: Name
+          Value: EC2 | Private Subnet A
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash -xe
+            sudo su
+            yum update -y
+            yum install -y httpd
+            echo "Healthy" > /var/www/html/index.html
+            service httpd start
+
+#=========================================
+Outputs:
+# Export Target Group
+  ALBTargetGroup:
+    Description: Export web server TargetGroup
+    Export:
+      Name: !Sub ${AWS::StackName}-ALBTargetGroup
+    Value: !Ref ALBTargetGroup
+
+# Export Application Load Balancer Dns Name
+  ApplicationLoadBalancerDnsName:
+    Description: Export Application LoadBalancer DNS Name
+    Export:
+      Name: !Sub ${AWS::StackName}-ApplicationLoadBalancerDnsName
+    Value: !GetAtt ApplicationLoadBalancer.DNSName
+
+# Export Application Load Balancer Zone ID
+  ApplicationLoadBalancerZoneID:
+    Description: Export Application LoadBalancer ZoneID
+    Export:
+      Name: !Sub ${AWS::StackName}-ApplicationLoadBalancerZoneID
+    Value: !GetAtt ApplicationLoadBalancer.CanonicalHostedZoneID
