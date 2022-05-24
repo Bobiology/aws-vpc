@@ -111,7 +111,7 @@ Resources:
    PublicSubnetA:
       Type: AWS::EC2::Subnet
       Properties: 
-        AvailabilityZone: us-east-1-atl-1a
+        AvailabilityZone: eu-west-2a
         CidrBlock: !Ref PublicSubnetACIDR
         MapPublicIpOnLaunch: true
         Tags: 
@@ -122,7 +122,7 @@ Resources:
    PublicSubnetB:
       Type: AWS::EC2::Subnet
       Properties: 
-        AvailabilityZone: us-west-2-den-1a
+        AvailabilityZone: eu-west-2b
         CidrBlock: !Ref PublicSubnetBCIDR
         MapPublicIpOnLaunch: true
         Tags: 
@@ -178,7 +178,7 @@ Resources:
    PrivateSubnetA:
       Type: AWS::EC2::Subnet
       Properties: 
-        AvailabilityZone: us-east-1-atl-1a
+        AvailabilityZone: eu-west-2a
         CidrBlock: !Ref PrivateSubnetACIDR
         MapPublicIpOnLaunch: false
         Tags: 
@@ -189,7 +189,7 @@ Resources:
    PrivateSubnetB:
       Type: AWS::EC2::Subnet
       Properties: 
-        AvailabilityZone: us-west-2-den-1a
+        AvailabilityZone: eu-west-2b
         CidrBlock: !Ref PrivateSubnetBCIDR
         MapPublicIpOnLaunch: false
         Tags: 
@@ -200,7 +200,7 @@ Resources:
    PrivateDBSubnetA:
       Type: AWS::EC2::Subnet
       Properties: 
-        AvailabilityZone: us-east-1-atl-1a
+        AvailabilityZone: eu-west-2a
         CidrBlock: !Ref PrivateDBSubnetACIDR
         MapPublicIpOnLaunch: false
         Tags: 
@@ -211,7 +211,7 @@ Resources:
    PrivateDBSubnetB:
       Type: AWS::EC2::Subnet
       Properties: 
-        AvailabilityZone: us-west-2-den-1a
+        AvailabilityZone: eu-west-2b
         CidrBlock: !Ref PrivateDBSubnetBCIDR
         MapPublicIpOnLaunch: false
         Tags: 

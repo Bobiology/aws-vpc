@@ -1,0 +1,13 @@
+
+Pending
+
+1. WAF
+2. Cloud front
+
+3. Server setup after launch
+ - auto scalling group (how to setup EC2s)
+ - alb - what to configure in ec2
+ - ansible
+------------
+
+4. CICD
