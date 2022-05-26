@@ -27,7 +27,7 @@ Parameters:
   AcmCertificate:
     Description: Certificate's ARN
     Type: String
-    Default: arn:aws:acm:us-west-2:053099938908:certificate/7ab32a59-acb2-426a-a0b7-700267d3b55b
+    Default: arn:aws:acm:eu-west-2:553469508124:certificate/8e57ea83-c75c-458d-a282-2c24958e330d
 
   ExportVpcStackName:
     Description: Name of the VPC that exports values
@@ -53,7 +53,7 @@ Parameters:
   AmazonImageID:
     Description: The ID of the Amazon machine image (AMI)
     Type: String
-    Default: ami-0ca285d4c2cda3300
+    Default: ami-0d729d2846a86a9e7
 
 
 #=========================================
@@ -85,7 +85,7 @@ Resources:
       Port: 80
       Protocol: HTTP
 
-#Create a Listener on Port 443
+# Create a Listener on Port 443
   ALBListenerSslCertificate:
     Type : AWS::ElasticLoadBalancingV2::Listener
     Properties:
