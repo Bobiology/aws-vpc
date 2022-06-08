@@ -7,6 +7,8 @@ Resources:
          Tags:
             - Key: Name
               Value: UAT S3 storage
+         VersioningConfiguration:
+            Status: Enabled
 
    StorageS3BucketPolicy:
       Type: AWS::S3::BucketPolicy

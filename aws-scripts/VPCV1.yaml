@@ -3,7 +3,7 @@ AWSTemplateFormatVersion: 2010-09-09
 # Global variables
 
 Description:
-  'This template will create both public and private subnets.'
+  'This template will create public and private subnets.'
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -28,6 +28,13 @@ Metadata:
           default: "SSH CIDR"
         Parameters:
           - SSHLocations
+      - 
+        Label:
+          default: "User/Project Info"
+        Parameters:
+          - Owner
+          - Project
+          - DeleteAfter
 
 Parameters:
     VpcCIDR:
@@ -74,6 +81,18 @@ Parameters:
       MinLength: '9'
       Type: String
 
+    Owner:
+      Type: String
+      Default: Peter Mwenda
+
+    DeleteAfter:
+      Type: String
+      Default: 01/12/2030
+
+    Project:
+      Type: String
+      Default: MigrationToCloud
+
 
 Resources:
    VPC:
@@ -111,7 +130,7 @@ Resources:
    PublicSubnetA:
       Type: AWS::EC2::Subnet
       Properties: 
-        AvailabilityZone: eu-west-2a
+        AvailabilityZone: !Select [ 1, !GetAZs '' ]
         CidrBlock: !Ref PublicSubnetACIDR
         MapPublicIpOnLaunch: true
         Tags: 
@@ -122,7 +141,7 @@ Resources:
    PublicSubnetB:
       Type: AWS::EC2::Subnet
       Properties: 
-        AvailabilityZone: eu-west-2b
+        AvailabilityZone: !Select [ 3, !GetAZs '' ]
         CidrBlock: !Ref PublicSubnetBCIDR
         MapPublicIpOnLaunch: true
         Tags: 
@@ -178,7 +197,7 @@ Resources:
    PrivateSubnetA:
       Type: AWS::EC2::Subnet
       Properties: 
-        AvailabilityZone: eu-west-2a
+        AvailabilityZone: !Select [ 1, !GetAZs '' ]
         CidrBlock: !Ref PrivateSubnetACIDR
         MapPublicIpOnLaunch: false
         Tags: 
@@ -189,7 +208,7 @@ Resources:
    PrivateSubnetB:
       Type: AWS::EC2::Subnet
       Properties: 
-        AvailabilityZone: eu-west-2b
+        AvailabilityZone: !Select [ 3, !GetAZs '' ]
         CidrBlock: !Ref PrivateSubnetBCIDR
         MapPublicIpOnLaunch: false
         Tags: 
@@ -200,7 +219,7 @@ Resources:
    PrivateDBSubnetA:
       Type: AWS::EC2::Subnet
       Properties: 
-        AvailabilityZone: eu-west-2a
+        AvailabilityZone: !Select [ 1, !GetAZs '' ]
         CidrBlock: !Ref PrivateDBSubnetACIDR
         MapPublicIpOnLaunch: false
         Tags: 
@@ -211,7 +230,7 @@ Resources:
    PrivateDBSubnetB:
       Type: AWS::EC2::Subnet
       Properties: 
-        AvailabilityZone: eu-west-2b
+        AvailabilityZone: !Select [ 3, !GetAZs '' ]
         CidrBlock: !Ref PrivateDBSubnetBCIDR
         MapPublicIpOnLaunch: false
         Tags: 
@@ -332,6 +351,28 @@ Resources:
   #============================================================================#
   # SSH security group
   #============================================================================#
+   JumpBoxSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties: 
+          GroupDescription: Enable SSH access via port 22
+          SecurityGroupIngress:  
+            - IpProtocol: tcp 
+              FromPort: 22
+              ToPort: 22
+              CidrIp: 0.0.0.0/0
+            - IpProtocol: icmp 
+              FromPort: -1
+              ToPort: -1
+              CidrIp: 0.0.0.0/0
+            - IpProtocol: tcp 
+              FromPort: 3305
+              ToPort: 3305
+              CidrIp: 0.0.0.0/0
+          Tags: 
+            - Key: Name 
+              Value: Jump Box SecurityGroup
+          VpcId: !Ref VPC
+
    SSHSecurityGroup:
         Type: AWS::EC2::SecurityGroup
         Properties: 
@@ -340,12 +381,15 @@ Resources:
             - IpProtocol: tcp 
               FromPort: 22
               ToPort: 22
-              CidrIp: !Ref SSHLocations
+              CidrIp: 0.0.0.0/0
+            - IpProtocol: icmp 
+              FromPort: -1
+              ToPort: -1
+              CidrIp: 0.0.0.0/0
           Tags: 
             - Key: Name 
-              Value: Group A SSH SecurityGroup
-          VpcId: !Ref VPC         
-
+              Value: Restricted SSH SecurityGroup
+          VpcId: !Ref VPC 
   #============================================================================#
   # Web server security group
   #============================================================================#
@@ -365,7 +409,11 @@ Resources:
             - IpProtocol: tcp 
               FromPort: 22
               ToPort: 22
-              SourceSecurityGroupId: !Ref SSHSecurityGroup   
+              CidrIp: 0.0.0.0/0
+            - IpProtocol: icmp 
+              FromPort: -1
+              ToPort: -1
+              CidrIp: 0.0.0.0/0
           Tags: 
             - Key: Name 
               Value: Web Server SecurityGroup
@@ -383,11 +431,56 @@ Resources:
               FromPort: 3306
               ToPort: 3306
               SourceSecurityGroupId: !Ref WebserverSecurityGroup
+            - IpProtocol: tcp 
+              FromPort: 3306
+              ToPort: 3306
+              CidrIp: 0.0.0.0/0 # replace this with Bastion(jump box) IP address /32
           Tags: 
             - Key: Name 
               Value: Database SecurityGroup
-          VpcId: !Ref VPC   
+          VpcId: !Ref VPC 
+#====================ACLs================================  
+  # Public Network ACL
+   PublicNetworkAcl:
+     Type: AWS::EC2::NetworkAcl
+     DependsOn: VPC
+     Properties:
+       VpcId: !Ref VPC
+       Tags:
+        - Key: Name
+          Value: !Join [ "", [ !Ref "AWS::StackName", "-public-acl" ] ]
+        - Key: Owner
+          Value: !Ref Owner
+        - Key: Project
+          Value: !Ref Project
+        - Key: DeleteAfter
+          Value: !Ref DeleteAfter
 
+   InboundSSHNACL:
+     Type: AWS::EC2::NetworkAclEntry
+     Properties:
+       NetworkAclId: !Ref PublicNetworkAcl
+       RuleNumber: '300'
+       Protocol: "6"
+       RuleAction: "allow"
+       Egress: "false"
+       CidrBlock: 0.0.0.0/0
+       PortRange:
+         From: '22'
+         To: '22'
+
+   InboundICMPNACL:
+     Type: AWS::EC2::NetworkAclEntry
+     Properties:
+       NetworkAclId: !Ref PublicNetworkAcl
+       RuleNumber: '500'
+       Protocol: "1"
+       RuleAction: "allow"
+       Egress: "false"
+       CidrBlock: 0.0.0.0/0
+       Icmp:
+         Code: "-1"
+         Type: "-1"        
 #====================================================
 Outputs:
    VPC:
@@ -456,7 +549,11 @@ Outputs:
        Name: !Sub ${AWS::StackName}-DatabaseSecurityGroup
      Value: !Ref DatabaseSecurityGroup
 
-
+   JumpBoxSecurityGroup:
+     Description: Export JumpBox SecurityGroup ID 
+     Export:
+       Name: !Sub ${AWS::StackName}-JumpBoxSecurityGroup
+     Value: !Ref JumpBoxSecurityGroup
 
 
 

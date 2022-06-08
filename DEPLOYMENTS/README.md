@@ -1,2 +1,0 @@
-# aws-vpc
-aws-iac

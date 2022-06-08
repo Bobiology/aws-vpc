@@ -27,7 +27,7 @@ Parameters:
   AcmCertificate:
     Description: Certificate's ARN
     Type: String
-    Default: arn:aws:acm:eu-west-2:553469508124:certificate/8e57ea83-c75c-458d-a282-2c24958e330d
+    Default: arn:aws:acm:us-west-2:053099938908:certificate/7ab32a59-acb2-426a-a0b7-700267d3b55b
 
   ExportVpcStackName:
     Description: Name of the VPC that exports values
@@ -48,12 +48,12 @@ Parameters:
     Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
     Type: 'AWS::EC2::KeyPair::KeyName'
     ConstraintDescription: must be the name of an existing EC2 KeyPair.
-    Default: uat-eks-keys
+    Default: jump-box
 
   AmazonImageID:
     Description: The ID of the Amazon machine image (AMI)
     Type: String
-    Default: ami-0d729d2846a86a9e7
+    Default: ami-0ca285d4c2cda3300
 
 
 #=========================================
@@ -85,7 +85,7 @@ Resources:
       Port: 80
       Protocol: HTTP
 
-# Create a Listener on Port 443
+#Create a Listener on Port 443
   ALBListenerSslCertificate:
     Type : AWS::ElasticLoadBalancingV2::Listener
     Properties:
@@ -111,36 +111,34 @@ Resources:
       Name: WebServers
       Port: 80
       Protocol: HTTP
-      Targets:
-        - Id: !Ref EC2InstanceA
-          Port: 80
+      #Targets:
+      #  - Id: !Ref EC2InstanceA
+      #    Port: 80
       TargetType: instance
       UnhealthyThresholdCount: 5
       VpcId: 
          Fn::ImportValue: !Sub ${ExportVpcStackName}-VPC
 
-  EC2InstanceA:
+  EC2InstanceB:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: !Ref InstanceType
       SubnetId:
-        Fn::ImportValue: !Sub ${ExportVpcStackName}-PrivateSubnetA
+        Fn::ImportValue: !Sub ${ExportVpcStackName}-PublicSubnetA
       SecurityGroupIds:
-        - Fn::ImportValue: !Sub ${ExportVpcStackName}-WebserverSecurityGroup
+        - Fn::ImportValue: !Sub ${ExportVpcStackName}-JumpBoxSecurityGroup
       KeyName: !Ref KeyName
       ImageId: !Ref AmazonImageID 
       Tags:
         - Key: Name
-          Value: EC2 | Private Subnet A
+          Value: Public Subnet A | Jump Box
       UserData:
         Fn::Base64:
           !Sub |
             #!/bin/bash -xe
             sudo su
             yum update -y
-            yum install -y httpd
-            echo "Healthy" > /var/www/html/index.html
-            service httpd start
+            yum install -y wget telnet
 
 #=========================================
 Outputs:

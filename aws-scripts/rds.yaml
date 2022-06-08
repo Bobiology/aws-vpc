@@ -27,6 +27,7 @@ Parameters:
    ExportVpcStackName:
       Description: vpc that exports the values
       Type: String
+      Default: vpc
 
    DatabaseInstanceIdentifier:
       AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
@@ -119,7 +120,7 @@ Resources:
      Type: AWS::RDS::DBInstance
      Properties:
        AllocatedStorage: !Ref DatabaseAllocatedStorage
-       AvailabilityZone: !Select [ 3, !GetAZs '' ]
+       AvailabilityZone: us-west-2b #!Select [ 3, !GetAZs '' ]
        BackupRetentionPeriod: !Ref DatabaseAllocatedStorage
        DBInstanceClass: !Ref DatabaseInstanceClass
        DBInstanceIdentifier: !Ref DatabaseInstanceIdentifier
