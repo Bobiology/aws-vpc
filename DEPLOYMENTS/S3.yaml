@@ -1,0 +1,21 @@
+Resources:
+   StorageS3Bucket:
+      Type: AWS::S3::Bucket
+      Properties:
+         BucketName: dukapepes3bucket
+         AccessControl: AuthenticatedRead
+         Tags:
+            - Key: Name
+              Value: UAT S3 storage
+
+   StorageS3BucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+         PolicyDocument:
+            Statement:
+               - Effect: Allow
+                 Principal: "*"      
+                 Action: 
+                    - s3:GetObject
+                 Resource: !Sub 'arn:aws:s3:::${StorageS3Bucket}/*'
+         Bucket: !Ref  StorageS3Bucket

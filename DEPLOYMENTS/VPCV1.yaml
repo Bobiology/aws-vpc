@@ -1,0 +1,469 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+# Global variables
+
+Description:
+  'This template will create both public and private subnets.'
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - 
+        Label:
+          default: "VPC CIDR"
+        Parameters:
+          - VpcCIDR 
+      -
+        Label:
+          default: Subnet CIDR 
+        Parameters:
+          - PublicSubnetACIDR
+          - PublicSubnetBCIDR
+          - PrivateSubnetACIDR
+          - PrivateSubnetBCIDR
+          - PrivateDBSubnetACIDR
+          - PrivateDBSubnetBCIDR
+      - 
+        Label:
+          default: "SSH CIDR"
+        Parameters:
+          - SSHLocations
+
+Parameters:
+    VpcCIDR:
+      Default: 10.0.0.0/16
+      Description: "This is the IP ranges for the UAT VPC (Classless Inter Domain Routing)"
+      Type: String
+
+    PublicSubnetACIDR:
+      Default: 10.0.0.0/24
+      Description: "This is the IP ranges for the UAT public subnet 'public subnet A'"
+      Type: String 
+
+    PublicSubnetBCIDR:
+      Default: 10.0.1.0/24
+      Description: "This is the IP ranges for the UAT public subnet 'public subnet B'"
+      Type: String 
+
+    PrivateSubnetACIDR: 
+      Default: 10.0.2.0/24
+      Description: "This is the IP ranges for the UAT privare subnet 'private subnet A'."
+      Type: String 
+
+    PrivateSubnetBCIDR: 
+      Default: 10.0.3.0/24
+      Description: "This is the IP ranges for the UAT privare subnet 'private subnet B'."
+      Type: String 
+
+    PrivateDBSubnetACIDR: 
+      Default: 10.0.5.0/24
+      Description: "This is the IP ranges for the UAT privare subnet 'private subnet C'."
+      Type: String
+
+    PrivateDBSubnetBCIDR: 
+      Default: 10.0.6.0/24
+      Description: "This is the IP ranges for the UAT privare subnet 'private subnet D'."
+      Type: String
+
+    SSHLocations: 
+      AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})' 
+      ConstraintDescription: 'Validate IP addresses of pattern x.x.x.x/x'
+      Default: 0.0.0.0/0
+      Description: 'Range of IP addresses that can be used to access EC2s(web servers) via SSH'
+      MaxLength: '18'
+      MinLength: '9'
+      Type: String
+
+
+Resources:
+   VPC:
+      Type: AWS::EC2::VPC
+      Properties: 
+        CidrBlock: !Ref VpcCIDR
+        EnableDnsHostnames: true
+        EnableDnsSupport: true
+        InstanceTenancy: default 
+        Tags: 
+          - Key: Name 
+            Value: UAT VPC 
+
+  #============================================================================#
+  # Intenet Gateway - for intenet access
+  #============================================================================#
+   InternetGateway:
+      Type: AWS::EC2::InternetGateway
+      Properties: 
+        Tags: 
+          - Key: Name
+            Value: UAT Internet Gateway 
+
+   InternetGatewayAttachement:
+      Type: AWS::EC2::VPCGatewayAttachment
+      Properties: 
+        InternetGatewayId: !Ref InternetGateway
+        VpcId: !Ref VPC
+
+
+  #============================================================================#
+  # Public subnet
+  #============================================================================#
+
+   PublicSubnetA:
+      Type: AWS::EC2::Subnet
+      Properties: 
+        AvailabilityZone: eu-west-2a
+        CidrBlock: !Ref PublicSubnetACIDR
+        MapPublicIpOnLaunch: true
+        Tags: 
+          - Key: Name
+            Value: UAT public subnet A
+        VpcId: !Ref VPC 
+
+   PublicSubnetB:
+      Type: AWS::EC2::Subnet
+      Properties: 
+        AvailabilityZone: eu-west-2b
+        CidrBlock: !Ref PublicSubnetBCIDR
+        MapPublicIpOnLaunch: true
+        Tags: 
+          - Key: Name
+            Value: UAT public subnet B
+        VpcId: !Ref VPC
+
+   PublicRoutingATable:
+      Type: AWS::EC2::RouteTable
+      Properties: 
+        Tags: 
+          - Key: Name
+            Value: Public routing table A
+        VpcId: !Ref VPC 
+
+   PublicRoutingBTable:
+      Type: AWS::EC2::RouteTable
+      Properties: 
+        Tags: 
+          - Key: Name
+            Value: Public routing table B
+        VpcId: !Ref VPC 
+
+   PublicRouteA:
+      Type: AWS::EC2::Route
+      Properties: 
+        DestinationCidrBlock: 0.0.0.0/0 
+        GatewayId: !Ref InternetGateway
+        RouteTableId: !Ref PublicRoutingATable
+
+   PublicRouteB:
+      Type: AWS::EC2::Route
+      Properties: 
+        DestinationCidrBlock: 0.0.0.0/0 
+        GatewayId: !Ref InternetGateway
+        RouteTableId: !Ref PublicRoutingBTable
+
+   PublicSubnetRouteTableAssociation:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties: 
+        RouteTableId: !Ref PublicRoutingATable
+        SubnetId: !Ref PublicSubnetA
+
+   PublicSubnetRouteTableBssociation:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties: 
+        RouteTableId: !Ref PublicRoutingBTable
+        SubnetId: !Ref PublicSubnetB
+  #============================================================================#
+  # Private subnets
+  #============================================================================#
+
+   PrivateSubnetA:
+      Type: AWS::EC2::Subnet
+      Properties: 
+        AvailabilityZone: eu-west-2a
+        CidrBlock: !Ref PrivateSubnetACIDR
+        MapPublicIpOnLaunch: false
+        Tags: 
+          - Key: Name
+            Value: UAT private subnet A
+        VpcId: !Ref VPC 
+
+   PrivateSubnetB:
+      Type: AWS::EC2::Subnet
+      Properties: 
+        AvailabilityZone: eu-west-2b
+        CidrBlock: !Ref PrivateSubnetBCIDR
+        MapPublicIpOnLaunch: false
+        Tags: 
+          - Key: Name
+            Value: UAT private subnet B
+        VpcId: !Ref VPC         
+
+   PrivateDBSubnetA:
+      Type: AWS::EC2::Subnet
+      Properties: 
+        AvailabilityZone: eu-west-2a
+        CidrBlock: !Ref PrivateDBSubnetACIDR
+        MapPublicIpOnLaunch: false
+        Tags: 
+          - Key: Name
+            Value: UAT DB private subnet A
+        VpcId: !Ref VPC 
+
+   PrivateDBSubnetB:
+      Type: AWS::EC2::Subnet
+      Properties: 
+        AvailabilityZone: eu-west-2b
+        CidrBlock: !Ref PrivateDBSubnetBCIDR
+        MapPublicIpOnLaunch: false
+        Tags: 
+          - Key: Name
+            Value: UAT DB private subnet B
+        VpcId: !Ref VPC 
+  #============================================================================#
+  # Nat gateway - for private subnet access to intenet and other aws resources
+  #============================================================================#
+   NatGatewayAEIP:
+      Type: AWS::EC2::EIP
+      Properties:
+        Domain: VPC
+        Tags: 
+          - Key: Name
+            Value: EIP A
+
+   NatGatewayBEIP:
+      Type: AWS::EC2::EIP
+      Properties:
+        Domain: VPC
+        Tags: 
+          - Key: Name
+            Value: EIP B
+
+   NatGatewayA:
+      Type: AWS::EC2::NatGateway
+      Properties:
+        AllocationId: !GetAtt NatGatewayAEIP.AllocationId
+        SubnetId: !Ref PublicSubnetA
+        Tags: 
+          - Key: Name
+            Value: NatGateway public sabnet A 
+
+   NatGatewayB:
+      Type: AWS::EC2::NatGateway
+      Properties:
+        AllocationId: !GetAtt NatGatewayBEIP.AllocationId
+        SubnetId: !Ref PublicSubnetB
+        Tags: 
+          - Key: Name
+            Value: NatGateway public sabnet B
+
+   PrivateRouteTableA:
+      Type: AWS::EC2::RouteTable
+      Properties:
+         Tags:
+           - Key: Name
+             Value: Private route table A
+         VpcId: !Ref VPC
+
+   PrivateRouteTableB:
+      Type: AWS::EC2::RouteTable
+      Properties:
+         Tags:
+           - Key: Name
+             Value: Private route table B
+         VpcId: !Ref VPC
+
+   PrivateRouteA:
+      Type: AWS::EC2::Route
+      Properties:
+         DestinationCidrBlock: 0.0.0.0/0
+         NatGatewayId: !Ref NatGatewayA
+         RouteTableId: !Ref PrivateRouteTableA
+
+   PrivateRouteB:
+      Type: AWS::EC2::Route
+      Properties:
+         DestinationCidrBlock: 0.0.0.0/0
+         NatGatewayId: !Ref NatGatewayB
+         RouteTableId: !Ref PrivateRouteTableB
+
+   PrivateSubnetARouteTableAssociation:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+        RouteTableId: !Ref PrivateRouteTableA
+        SubnetId: !Ref PrivateSubnetA
+
+   PrivateSubnetBRouteTableAssociation:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+        RouteTableId: !Ref PrivateRouteTableB
+        SubnetId: !Ref PrivateSubnetB
+
+   PrivateDBSubnetARouteTableAssociation:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+        RouteTableId: !Ref PrivateRouteTableA
+        SubnetId: !Ref PrivateDBSubnetA
+
+   PrivateDBSubnetBRouteTableAssociation:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+        RouteTableId: !Ref PrivateRouteTableB
+        SubnetId: !Ref PrivateDBSubnetB
+  #============================================================================#
+  # LB security group
+  #============================================================================#
+   ApplicationLBSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties: 
+          GroupDescription: Enable HTTP and HTTPS access via port 80 and 443
+          SecurityGroupIngress: 
+            - IpProtocol: tcp 
+              FromPort: 80
+              ToPort: 80
+              CidrIp: 0.0.0.0/0
+            - IpProtocol: tcp 
+              FromPort: 443
+              ToPort: 443
+              CidrIp: 0.0.0.0/0  
+          Tags: 
+            - Key: Name 
+              Value: Application Load Balancer SecurityGroup
+          VpcId: !Ref VPC
+
+  #============================================================================#
+  # SSH security group
+  #============================================================================#
+   SSHSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties: 
+          GroupDescription: Enable SSH access via port 22
+          SecurityGroupIngress: 
+            - IpProtocol: tcp 
+              FromPort: 22
+              ToPort: 22
+              CidrIp: !Ref SSHLocations
+          Tags: 
+            - Key: Name 
+              Value: Group A SSH SecurityGroup
+          VpcId: !Ref VPC         
+
+  #============================================================================#
+  # Web server security group
+  #============================================================================#
+   WebserverSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties: 
+          GroupDescription: Accept traffic from ALB 
+          SecurityGroupIngress: 
+            - IpProtocol: tcp 
+              FromPort: 80
+              ToPort: 80
+              SourceSecurityGroupId: !Ref ApplicationLBSecurityGroup
+            - IpProtocol: tcp 
+              FromPort: 443
+              ToPort: 443
+              SourceSecurityGroupId: !Ref ApplicationLBSecurityGroup  
+            - IpProtocol: tcp 
+              FromPort: 22
+              ToPort: 22
+              SourceSecurityGroupId: !Ref SSHSecurityGroup   
+          Tags: 
+            - Key: Name 
+              Value: Web Server SecurityGroup
+          VpcId: !Ref VPC
+
+  #============================================================================#
+  # Database security group
+  #============================================================================#
+   DatabaseSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties: 
+          GroupDescription: Enable access to the database
+          SecurityGroupIngress: 
+            - IpProtocol: tcp 
+              FromPort: 3306
+              ToPort: 3306
+              SourceSecurityGroupId: !Ref WebserverSecurityGroup
+          Tags: 
+            - Key: Name 
+              Value: Database SecurityGroup
+          VpcId: !Ref VPC   
+
+#====================================================
+Outputs:
+   VPC:
+     Description: Export VPC ID 
+     Export:
+       Name: !Sub ${AWS::StackName}-VPC
+     Value: !Ref VPC 
+
+   PublicSubnetA:
+     Description: Export public subnet A ID 
+     Export:
+       Name: !Sub ${AWS::StackName}-PublicSubnetA
+     Value: !Ref PublicSubnetA    
+
+   PublicSubnetB:
+     Description: Export public subnet B ID 
+     Export:
+       Name: !Sub ${AWS::StackName}-PublicSubnetB
+     Value: !Ref PublicSubnetB
+
+   PrivateSubnetA:
+     Description: Export private subnet A ID 
+     Export:
+       Name: !Sub ${AWS::StackName}-PrivateSubnetA
+     Value: !Ref PrivateSubnetA  
+
+   PrivateSubnetB:
+     Description: Export private subnet B ID 
+     Export:
+       Name: !Sub ${AWS::StackName}-PrivateSubnetB
+     Value: !Ref PrivateSubnetB      
+
+   PrivateDBSubnetA:
+     Description: Export private DB subnet A ID 
+     Export:
+       Name: !Sub ${AWS::StackName}-PrivateDBSubnetA
+     Value: !Ref PrivateDBSubnetA
+
+   PrivateDBSubnetB:
+     Description: Export private DB subnet B ID 
+     Export:
+       Name: !Sub ${AWS::StackName}-PrivateDBSubnetB
+     Value: !Ref PrivateDBSubnetB
+
+   ApplicationLBSecurityGroup:
+     Description: Export Application LB Security Group ID 
+     Export:
+       Name: !Sub ${AWS::StackName}-ApplicationLBSecurityGroup
+     Value: !Ref ApplicationLBSecurityGroup
+
+   SSHSecurityGroup:
+     Description: Export SSH SecurityGroup ID 
+     Export:
+       Name: !Sub ${AWS::StackName}-SSHSecurityGroup
+     Value: !Ref SSHSecurityGroup
+
+   WebserverSecurityGroup:
+     Description: Export Web server SecurityGroup ID 
+     Export:
+       Name: !Sub ${AWS::StackName}-WebserverSecurityGroup
+     Value: !Ref WebserverSecurityGroup      
+
+   DatabaseSecurityGroup:
+     Description: Export Database SecurityGroup ID 
+     Export:
+       Name: !Sub ${AWS::StackName}-DatabaseSecurityGroup
+     Value: !Ref DatabaseSecurityGroup
+
+
+
+
+
+
+
+
+
+
+
+
