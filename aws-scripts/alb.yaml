@@ -27,7 +27,7 @@ Parameters:
   AcmCertificate:
     Description: Certificate's ARN
     Type: String
-    Default: arn:aws:acm:us-west-2:053099938908:certificate/7ab32a59-acb2-426a-a0b7-700267d3b55b
+    Default: arn:aws:acm:us-west-2:553469508124:certificate/6edd201c-b3a2-4c65-be73-19dfb06a97bd
 
   ExportVpcStackName:
     Description: Name of the VPC that exports values
@@ -54,6 +54,8 @@ Parameters:
     Description: The ID of the Amazon machine image (AMI)
     Type: String
     Default: ami-0ca285d4c2cda3300
+
+
 
 
 #=========================================

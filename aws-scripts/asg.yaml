@@ -55,7 +55,7 @@ Parameters:
   OperatorEMail:
     Description: A valid EMail address to notify if there are any scaling operations
     Type: String
-    Default: mwendapeter72@gmail.com
+    Default: tech@dukapepe.tech
 
   EC2KeyName:
     Description: Name of an EC2 KeyPair to enable SSH access to the instance.
@@ -78,12 +78,13 @@ Parameters:
   InstanceType:
     Description: WebServers EC2 instance type
     Type: String
-    Default: t2.micro
+    Default: t2.medium
     AllowedValues:
       - t1.micro
       - t2.nano
       - t2.micro
       - t2.small
+      - t2.medium
     ConstraintDescription: Must be a valid EC2 instance type.
 
 #  ThumbprintList:
@@ -100,10 +101,10 @@ Resources:
   WebappApplication:
     Type: "AWS::CodeDeploy::Application" 
     Properties: 
-      ApplicationName: awssampleapp
+      ApplicationName: ecommerce
       Tags: 
         - Key: Name
-          Value: Test Application
+          Value: Dukapepe eCommerce
 
   WebappDeploymentGroup:
     Type: "AWS::CodeDeploy::DeploymentGroup"

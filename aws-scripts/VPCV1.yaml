@@ -83,8 +83,7 @@ Parameters:
 
     Owner:
       Type: String
-      Default: Peter Mwenda
-
+      Default: Dukapepe
     DeleteAfter:
       Type: String
       Default: 01/12/2030
@@ -130,7 +129,7 @@ Resources:
    PublicSubnetA:
       Type: AWS::EC2::Subnet
       Properties: 
-        AvailabilityZone: !Select [ 1, !GetAZs '' ]
+        AvailabilityZone: us-west-2a
         CidrBlock: !Ref PublicSubnetACIDR
         MapPublicIpOnLaunch: true
         Tags: 
@@ -141,7 +140,7 @@ Resources:
    PublicSubnetB:
       Type: AWS::EC2::Subnet
       Properties: 
-        AvailabilityZone: !Select [ 3, !GetAZs '' ]
+        AvailabilityZone: us-west-2b
         CidrBlock: !Ref PublicSubnetBCIDR
         MapPublicIpOnLaunch: true
         Tags: 
@@ -197,7 +196,7 @@ Resources:
    PrivateSubnetA:
       Type: AWS::EC2::Subnet
       Properties: 
-        AvailabilityZone: !Select [ 1, !GetAZs '' ]
+        AvailabilityZone: us-west-2a
         CidrBlock: !Ref PrivateSubnetACIDR
         MapPublicIpOnLaunch: false
         Tags: 
@@ -208,7 +207,7 @@ Resources:
    PrivateSubnetB:
       Type: AWS::EC2::Subnet
       Properties: 
-        AvailabilityZone: !Select [ 3, !GetAZs '' ]
+        AvailabilityZone: us-west-2b
         CidrBlock: !Ref PrivateSubnetBCIDR
         MapPublicIpOnLaunch: false
         Tags: 
@@ -219,7 +218,7 @@ Resources:
    PrivateDBSubnetA:
       Type: AWS::EC2::Subnet
       Properties: 
-        AvailabilityZone: !Select [ 1, !GetAZs '' ]
+        AvailabilityZone: us-west-2a
         CidrBlock: !Ref PrivateDBSubnetACIDR
         MapPublicIpOnLaunch: false
         Tags: 
@@ -230,7 +229,7 @@ Resources:
    PrivateDBSubnetB:
       Type: AWS::EC2::Subnet
       Properties: 
-        AvailabilityZone: !Select [ 3, !GetAZs '' ]
+        AvailabilityZone: us-west-2b
         CidrBlock: !Ref PrivateDBSubnetBCIDR
         MapPublicIpOnLaunch: false
         Tags: 
