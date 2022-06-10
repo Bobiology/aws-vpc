@@ -1,0 +1,355 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: Create uto scalling group
+#==================================================
+Metadata:
+  AWS::CloudFormation::Interface: 
+    ParameterGroups:
+      - 
+        Label: 
+          default: Export VPC Stack Name
+        Parameters:
+          - ExportVpcStackName
+      - 
+        Label: 
+          default: Export Application Laod Bbalancer Stack Name
+        Parameters:
+          - ExportAlbStackName
+      - 
+        Label: 
+          default: Email Address
+        Parameters:
+          - OperatorEMail
+      - 
+        Label: 
+          default: Image ID
+        Parameters:
+          - EC2ImageID
+      - 
+        Label: 
+          default: Launch Template Name
+        Parameters:
+          - WebServerLaunchTemplateName
+      - 
+        Label: 
+          default: Instance Type
+        Parameters:
+          - InstanceType
+      - 
+        Label: 
+          default: EC2 KeyPair
+        Parameters:
+          - EC2KeyName
+#==================================================
+Parameters:
+  ExportVpcStackName:
+    Description: The name of the vpc stack that exports values
+    Type: String
+    Default: vpc
+
+  ExportAlbStackName:
+    Description: The name of the Application Load Balancer stack that exports values
+    Type: String
+    Default: alb
+
+  OperatorEMail:
+    Description: A valid EMail address to notify if there are any scaling operations
+    Type: String
+    Default: mwendapeter72@gmail.com
+
+  EC2KeyName:
+    Description: Name of an EC2 KeyPair to enable SSH access to the instance.
+    Type: AWS::EC2::KeyPair::KeyName
+    ConstraintDescription: Must be the name of an existing EC2 KeyPair.
+    Default: jump-box
+
+  EC2ImageID:
+    Description: The ID of the custom AMI
+    Type: String
+    Default: ami-0ca285d4c2cda3300
+
+  WebServerLaunchTemplateName:
+    AllowedPattern: '[a-zA-Z0-9\(\)\.\-/_]+'
+    ConstraintDescription: Must be unique to this account.
+    Default: Lamp-Server-Launch-Template
+    Description: Name of launch template
+    Type: String
+
+  InstanceType:
+    Description: WebServers EC2 instance type
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t1.micro
+      - t2.nano
+      - t2.micro
+      - t2.small
+    ConstraintDescription: Must be a valid EC2 instance type.
+
+#  ThumbprintList:
+#    Type: String 
+#    Default: 6938fd4d98bab03faadb97b34396831e3780aea1
+#    Description: A thumbprint of an Open ID Connector is a SHA1 hash of the public certificate of the host
+
+#  GithubRepoName:
+#    Type: String 
+#    Description: GitHub repository name
+#    Default: msomi22.github.io
+#==================================================
+Resources:
+  WebappApplication:
+    Type: "AWS::CodeDeploy::Application" 
+    Properties: 
+      ApplicationName: awssampleapp
+      Tags: 
+        - Key: Name
+          Value: Test Application
+
+  WebappDeploymentGroup:
+    Type: "AWS::CodeDeploy::DeploymentGroup"
+    Properties:
+      ApplicationName: WebServerAutoScalingGroup
+      ApplicationName: !Ref WebappApplication
+      ServiceRoleArn: !GetAtt CodeDeployRole.Arn
+      DeploymentConfigName: CodeDeployDefault.AllAtOnce
+      AutoScalingGroups:
+      - Ref: WebServerAutoScalingGroup
+
+  WebappDeploymentBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: dukapepecodedeploys3bucket
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Name
+          Value: Code deploy S3 storage
+      VersioningConfiguration:
+        Status: Enabled
+
+#  IDCProvider:
+#      Type: AWS::IAM::OIDCProvider
+#      Properties:
+#          Url: "https://token.actions.githubusercontent.com"
+#          ClientIdList:
+#            - "sts.amazonaws.com"
+#          ThumbprintList:
+#             - !Ref ThumbprintList 
+#  GitHubIAMRole:
+#      Type: AWS::IAM::Role
+#      Properties:
+#          Path: "/"
+#          RoleName: CodeDeployRoleforGitHub
+#          AssumeRolePolicyDocument:
+#             Statement:
+#               - Effect: Allow
+#                 Action: sts:AssumeRoleWithWebIdentity
+#                 Principal:
+#                   Federated: !Ref IDCProvider
+#                 Condition:
+#                   StringLike:
+#                     token.actions.githubusercontent.com:sub: !Sub repo:${GithubRepoName}:*
+#          MaxSessionDuration: 3600
+#          Description: "Github Actions role"
+#          Policies:
+#
+#          - PolicyName: 'CodeDeployRoleforGitHub-policy'
+#            PolicyDocument:
+#              Version: '2012-10-17'
+#              Statement:
+#              - Effect: Allow
+#                Action:
+#                - 'codedeploy:Get*'
+#                - 'codedeploy:Batch*'
+#                - 'codedeploy:CreateDeployment'
+#                - 'codedeploy:RegisterApplicationRevision'
+#                - 'codedeploy:List*'
+#                Resource:
+#                  - !Sub 'arn:${AWS::Partition}:codedeploy:*:${AWS::AccountId}:*'
+#              - Effect: Allow
+#                Action:
+#                - 's3:putObject'
+#                Resource: !Sub arn:${AWS::Partition}:s3:::${WebappDeploymentBucket}/*
+
+
+  CodeDeployRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: CodeDeployRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "codedeploy.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: allow-autoscaling
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: Allow
+                Action:
+                  - ec2:*
+                  - autoscaling:*
+                Resource: "*"
+  WebappRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: WebappRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "ec2.amazonaws.com"
+                - "codedeploy.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "allow-webapp-deployment-bucket-bucket"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action: "s3:getObject"
+                Resource: !Sub arn:aws:s3:::${WebappDeploymentBucket}/*
+
+  WebappInstanceProfile:
+    Type: "AWS::IAM::InstanceProfile"
+    Properties:
+      Roles: 
+        - Ref: WebappRole
+
+  WebServerLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Ref WebServerLaunchTemplateName
+      LaunchTemplateData:
+        IamInstanceProfile:
+          Arn: !GetAtt
+            - WebappInstanceProfile
+            - Arn
+        ImageId: !Ref EC2ImageID
+        InstanceType: !Ref InstanceType
+        KeyName: !Ref EC2KeyName
+        UserData: 
+          Fn::Base64:
+              !Sub |
+              #!/bin/bash -xe
+              sudo su
+              yum update -y
+              yum install -y wget telnet
+              yum install ruby -y 
+              wget https://aws-codedeploy-${AWS::Region}.s3.${AWS::Region}.amazonaws.com/latest/install
+              chmod +x ./install
+              ./install auto
+              cd /tmp
+              yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+              systemctl enable amazon-ssm-agent
+              systemctl start amazon-ssm-agent
+        Monitoring:
+          Enabled: true
+        SecurityGroupIds:
+          - Fn::ImportValue: !Sub ${ExportVpcStackName}-WebserverSecurityGroup
+
+
+  NotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription:
+        - Endpoint: !Ref OperatorEMail
+          Protocol: email
+
+#web server - public
+  WebServerAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: WebServerAutoScalingGroup
+      VPCZoneIdentifier:
+        - Fn::ImportValue: !Sub ${ExportVpcStackName}-PrivateSubnetA
+        - Fn::ImportValue: !Sub ${ExportVpcStackName}-PrivateSubnetB
+      HealthCheckGracePeriod: 300
+      HealthCheckType: ELB
+      LaunchTemplate:
+        LaunchTemplateName: !Ref WebServerLaunchTemplateName
+        Version: !GetAtt WebServerLaunchTemplate.LatestVersionNumber
+      MinSize: 2
+      MaxSize: 4
+      DesiredCapacity: 2
+      Tags:
+        - Key: Name
+          Value: WebServers
+          PropagateAtLaunch: true
+      TargetGroupARNs:
+        - Fn::ImportValue: !Sub ${ExportAlbStackName}-ALBTargetGroup
+      NotificationConfiguration:
+        TopicARN: !Ref NotificationTopic
+        NotificationTypes:
+          - 'autoscaling:EC2_INSTANCE_LAUNCH'
+          - 'autoscaling:EC2_INSTANCE_LAUNCH_ERROR'
+          - 'autoscaling:EC2_INSTANCE_TERMINATE'
+          - 'autoscaling:EC2_INSTANCE_TERMINATE_ERROR'
+
+  WebServerScaleUpPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: !Ref WebServerAutoScalingGroup
+      Cooldown: 60
+      ScalingAdjustment: 1
+
+  WebServerScaleDownPolicy:
+    Type: 'AWS::AutoScaling::ScalingPolicy'
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: !Ref WebServerAutoScalingGroup
+      Cooldown: 60
+      ScalingAdjustment: -1
+
+  CPUAlarmHigh:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Scale-up if CPU > 90% for 10 minutes
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 90
+      AlarmActions:
+        - !Ref WebServerScaleUpPolicy
+      Dimensions:
+        - Name: AutoScalingGroupName
+          Value: !Ref WebServerAutoScalingGroup
+      ComparisonOperator: GreaterThanThreshold
+
+  CPUAlarmLow:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Scale-down if CPU < 70% for 10 minutes
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 70
+      AlarmActions:
+        - !Ref WebServerScaleDownPolicy
+      Dimensions:
+        - Name: AutoScalingGroupName
+          Value: !Ref WebServerAutoScalingGroup
+      ComparisonOperator: LessThanThreshold
+#==================================================
