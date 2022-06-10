@@ -252,8 +252,15 @@ Resources:
               #!/bin/bash -xe
               sudo su
               yum update -y
-              yum install -y wget telnet
+              yum install -y httpd wget telnet
+              service httpd start
               yum install ruby -y 
+              yum install -y amazon-linux-extras
+              amazon-linux-extras enable php7.4
+              yum clean metadata
+              yum install -y php-cli php-pdo php-fpm php-json php-mysqlnd php-curl php-mbstring php-intl php-opcache php-soap php-gd php-xml php-mysqli
+              echo "<?php phpinfo(); ?>" > /var/www/html/phpinfo.php
+              service httpd restart
               wget https://aws-codedeploy-${AWS::Region}.s3.${AWS::Region}.amazonaws.com/latest/install
               chmod +x ./install
               ./install auto
