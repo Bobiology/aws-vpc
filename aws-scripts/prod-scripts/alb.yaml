@@ -48,7 +48,7 @@ Parameters:
     Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
     Type: 'AWS::EC2::KeyPair::KeyName'
     ConstraintDescription: must be the name of an existing EC2 KeyPair.
-    Default: jump-box
+    Default: prod-jump-box
 
   AmazonImageID:
     Description: The ID of the Amazon machine image (AMI)
@@ -131,7 +131,7 @@ Resources:
       ImageId: !Ref AmazonImageID 
       Tags:
         - Key: Name
-          Value: Public Subnet A | Jump Box
+          Value: Public Subnet A | Prod Jump Box
       UserData:
         Fn::Base64:
           !Sub |

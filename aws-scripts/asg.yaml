@@ -78,25 +78,17 @@ Parameters:
   InstanceType:
     Description: WebServers EC2 instance type
     Type: String
-    Default: t2.medium
+    Default: t2.xlarge
     AllowedValues:
       - t1.micro
       - t2.nano
       - t2.micro
       - t2.small
       - t2.medium
+      - t2.large
+      - t2.xlarge
     ConstraintDescription: Must be a valid EC2 instance type.
 
-#  ThumbprintList:
-#    Type: String 
-#    Default: 6938fd4d98bab03faadb97b34396831e3780aea1
-#    Description: A thumbprint of an Open ID Connector is a SHA1 hash of the public certificate of the host
-
-#  GithubRepoName:
-#    Type: String 
-#    Description: GitHub repository name
-#    Default: msomi22.github.io
-#==================================================
 Resources:
   WebappApplication:
     Type: "AWS::CodeDeploy::Application" 
@@ -130,52 +122,7 @@ Resources:
           Value: Code deploy S3 storage
       VersioningConfiguration:
         Status: Enabled
-
-#  IDCProvider:
-#      Type: AWS::IAM::OIDCProvider
-#      Properties:
-#          Url: "https://token.actions.githubusercontent.com"
-#          ClientIdList:
-#            - "sts.amazonaws.com"
-#          ThumbprintList:
-#             - !Ref ThumbprintList 
-#  GitHubIAMRole:
-#      Type: AWS::IAM::Role
-#      Properties:
-#          Path: "/"
-#          RoleName: CodeDeployRoleforGitHub
-#          AssumeRolePolicyDocument:
-#             Statement:
-#               - Effect: Allow
-#                 Action: sts:AssumeRoleWithWebIdentity
-#                 Principal:
-#                   Federated: !Ref IDCProvider
-#                 Condition:
-#                   StringLike:
-#                     token.actions.githubusercontent.com:sub: !Sub repo:${GithubRepoName}:*
-#          MaxSessionDuration: 3600
-#          Description: "Github Actions role"
-#          Policies:
-#
-#          - PolicyName: 'CodeDeployRoleforGitHub-policy'
-#            PolicyDocument:
-#              Version: '2012-10-17'
-#              Statement:
-#              - Effect: Allow
-#                Action:
-#                - 'codedeploy:Get*'
-#                - 'codedeploy:Batch*'
-#                - 'codedeploy:CreateDeployment'
-#                - 'codedeploy:RegisterApplicationRevision'
-#                - 'codedeploy:List*'
-#                Resource:
-#                  - !Sub 'arn:${AWS::Partition}:codedeploy:*:${AWS::AccountId}:*'
-#              - Effect: Allow
-#                Action:
-#                - 's3:putObject'
-#                Resource: !Sub arn:${AWS::Partition}:s3:::${WebappDeploymentBucket}/*
-
-
+        
   CodeDeployRole:
     Type: "AWS::IAM::Role"
     Properties:

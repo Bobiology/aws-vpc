@@ -61,7 +61,7 @@ Parameters:
     Description: Name of an EC2 KeyPair to enable SSH access to the instance.
     Type: AWS::EC2::KeyPair::KeyName
     ConstraintDescription: Must be the name of an existing EC2 KeyPair.
-    Default: jump-box
+    Default: prod-jump-box
 
   EC2ImageID:
     Description: The ID of the custom AMI
@@ -78,32 +78,25 @@ Parameters:
   InstanceType:
     Description: WebServers EC2 instance type
     Type: String
-    Default: t2.micro
+    Default: t2.large
     AllowedValues:
       - t1.micro
       - t2.nano
       - t2.micro
       - t2.small
+      - t2.medium
+      - t2.large
+      - t2.xlarge
     ConstraintDescription: Must be a valid EC2 instance type.
 
-#  ThumbprintList:
-#    Type: String 
-#    Default: 6938fd4d98bab03faadb97b34396831e3780aea1
-#    Description: A thumbprint of an Open ID Connector is a SHA1 hash of the public certificate of the host
-
-#  GithubRepoName:
-#    Type: String 
-#    Description: GitHub repository name
-#    Default: msomi22.github.io
-#==================================================
 Resources:
   WebappApplication:
     Type: "AWS::CodeDeploy::Application" 
     Properties: 
-      ApplicationName: awssampleapp
+      ApplicationName: DukapepeApp
       Tags: 
         - Key: Name
-          Value: Test Application
+          Value: Dukapepe Backend App
 
   WebappDeploymentGroup:
     Type: "AWS::CodeDeploy::DeploymentGroup"
@@ -118,7 +111,7 @@ Resources:
   WebappDeploymentBucket:
     Type: "AWS::S3::Bucket"
     Properties:
-      BucketName: dukapepecodedeploys3bucket
+      BucketName: prod-dukapepe-bucket
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -129,51 +122,6 @@ Resources:
           Value: Code deploy S3 storage
       VersioningConfiguration:
         Status: Enabled
-
-#  IDCProvider:
-#      Type: AWS::IAM::OIDCProvider
-#      Properties:
-#          Url: "https://token.actions.githubusercontent.com"
-#          ClientIdList:
-#            - "sts.amazonaws.com"
-#          ThumbprintList:
-#             - !Ref ThumbprintList 
-#  GitHubIAMRole:
-#      Type: AWS::IAM::Role
-#      Properties:
-#          Path: "/"
-#          RoleName: CodeDeployRoleforGitHub
-#          AssumeRolePolicyDocument:
-#             Statement:
-#               - Effect: Allow
-#                 Action: sts:AssumeRoleWithWebIdentity
-#                 Principal:
-#                   Federated: !Ref IDCProvider
-#                 Condition:
-#                   StringLike:
-#                     token.actions.githubusercontent.com:sub: !Sub repo:${GithubRepoName}:*
-#          MaxSessionDuration: 3600
-#          Description: "Github Actions role"
-#          Policies:
-#
-#          - PolicyName: 'CodeDeployRoleforGitHub-policy'
-#            PolicyDocument:
-#              Version: '2012-10-17'
-#              Statement:
-#              - Effect: Allow
-#                Action:
-#                - 'codedeploy:Get*'
-#                - 'codedeploy:Batch*'
-#                - 'codedeploy:CreateDeployment'
-#                - 'codedeploy:RegisterApplicationRevision'
-#                - 'codedeploy:List*'
-#                Resource:
-#                  - !Sub 'arn:${AWS::Partition}:codedeploy:*:${AWS::AccountId}:*'
-#              - Effect: Allow
-#                Action:
-#                - 's3:putObject'
-#                Resource: !Sub arn:${AWS::Partition}:s3:::${WebappDeploymentBucket}/*
-
 
   CodeDeployRole:
     Type: "AWS::IAM::Role"

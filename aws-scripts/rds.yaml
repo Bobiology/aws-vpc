@@ -102,7 +102,7 @@ Parameters:
         - true
         - false
       ConstraintDescription: Must be either true or false
-      Default: false
+      Default: true
       Description: Creates a Multi-AZ RDS instance
       Type: String
 

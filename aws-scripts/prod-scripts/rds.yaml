@@ -90,8 +90,10 @@ Parameters:
         - db.m1.small
         - db.m1.medium
         - db.m1.large
+        - db.t4g.xlarge
+        - db.t4g.2xlarge
       ConstraintDescription: Select valid database instance type
-      Default: db.t2.micro
+      Default: db.t2.xlarge
       Description: The database instance type
       Type: String
 
