@@ -102,7 +102,7 @@ Parameters:
         - true
         - false
       ConstraintDescription: Must be either true or false
-      Default: false
+      Default: true
       Description: Creates a Multi-AZ RDS instance
       Type: String
 
@@ -122,7 +122,7 @@ Resources:
      Type: AWS::RDS::DBInstance
      Properties:
        AllocatedStorage: !Ref DatabaseAllocatedStorage
-       AvailabilityZone: us-west-2b #!Select [ 3, !GetAZs '' ]
+       AvailabilityZone: eu-west-1b #!Select [ 3, !GetAZs '' ]
        BackupRetentionPeriod: !Ref DatabaseAllocatedStorage
        DBInstanceClass: !Ref DatabaseInstanceClass
        DBInstanceIdentifier: !Ref DatabaseInstanceIdentifier

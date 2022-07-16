@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 
-Description: Create uto scalling group
+Description: Create auto scalling group
 #==================================================
 Metadata:
   AWS::CloudFormation::Interface: 
@@ -12,7 +12,7 @@ Metadata:
           - ExportVpcStackName
       - 
         Label: 
-          default: Export Application Laod Bbalancer Stack Name
+          default: Export Application Laod Balancer Stack Name
         Parameters:
           - ExportAlbStackName
       - 
@@ -50,12 +50,12 @@ Parameters:
   ExportAlbStackName:
     Description: The name of the Application Load Balancer stack that exports values
     Type: String
-    Default: alb
+    Default: elb
 
   OperatorEMail:
     Description: A valid EMail address to notify if there are any scaling operations
     Type: String
-    Default: mwendapeter72@gmail.com
+    Default: tech@dukapepe.tech
 
   EC2KeyName:
     Description: Name of an EC2 KeyPair to enable SSH access to the instance.

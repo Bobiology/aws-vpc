@@ -38,37 +38,37 @@ Metadata:
 
 Parameters:
     VpcCIDR:
-      Default: 10.0.0.0/16
+      Default: 172.0.0.0/16
       Description: "This is the IP ranges for the PROD VPC (Classless Inter Domain Routing)"
       Type: String
 
     PublicSubnetACIDR:
-      Default: 10.0.0.0/24
+      Default: 172.0.0.0/24
       Description: "This is the IP ranges for the PROD public subnet 'public subnet A'"
       Type: String 
 
     PublicSubnetBCIDR:
-      Default: 10.0.1.0/24
+      Default: 172.0.1.0/24
       Description: "This is the IP ranges for the PROD public subnet 'public subnet B'"
       Type: String 
 
     PrivateSubnetACIDR: 
-      Default: 10.0.2.0/24
+      Default: 172.0.2.0/24
       Description: "This is the IP ranges for the PROD privare subnet 'private subnet A'."
       Type: String 
 
     PrivateSubnetBCIDR: 
-      Default: 10.0.3.0/24
+      Default: 172.0.3.0/24
       Description: "This is the IP ranges for the PROD privare subnet 'private subnet B'."
       Type: String 
 
     PrivateDBSubnetACIDR: 
-      Default: 10.0.5.0/24
+      Default: 172.0.5.0/24
       Description: "This is the IP ranges for the PROD privare subnet 'private subnet C'."
       Type: String
 
     PrivateDBSubnetBCIDR: 
-      Default: 10.0.6.0/24
+      Default: 172.0.6.0/24
       Description: "This is the IP ranges for the PROD privare subnet 'private subnet D'."
       Type: String
 
@@ -83,7 +83,7 @@ Parameters:
 
     Owner:
       Type: String
-      Default: Peter Mwenda
+      Default: Dukapepe Limited
 
     DeleteAfter:
       Type: String
@@ -130,7 +130,7 @@ Resources:
    PublicSubnetA:
       Type: AWS::EC2::Subnet
       Properties: 
-        AvailabilityZone: !Select [ 1, !GetAZs '' ]
+        AvailabilityZone: eu-west-1a
         CidrBlock: !Ref PublicSubnetACIDR
         MapPublicIpOnLaunch: true
         Tags: 
@@ -141,7 +141,7 @@ Resources:
    PublicSubnetB:
       Type: AWS::EC2::Subnet
       Properties: 
-        AvailabilityZone: !Select [ 3, !GetAZs '' ]
+        AvailabilityZone: eu-west-1b
         CidrBlock: !Ref PublicSubnetBCIDR
         MapPublicIpOnLaunch: true
         Tags: 
@@ -154,7 +154,7 @@ Resources:
       Properties: 
         Tags: 
           - Key: Name
-            Value: Public routing table A
+            Value: PROD Public routing table A
         VpcId: !Ref VPC 
 
    PublicRoutingBTable:
@@ -162,7 +162,7 @@ Resources:
       Properties: 
         Tags: 
           - Key: Name
-            Value: Public routing table B
+            Value: PROD Public routing table B
         VpcId: !Ref VPC 
 
    PublicRouteA:
@@ -197,7 +197,7 @@ Resources:
    PrivateSubnetA:
       Type: AWS::EC2::Subnet
       Properties: 
-        AvailabilityZone: !Select [ 1, !GetAZs '' ]
+        AvailabilityZone: eu-west-1a
         CidrBlock: !Ref PrivateSubnetACIDR
         MapPublicIpOnLaunch: false
         Tags: 
@@ -208,7 +208,7 @@ Resources:
    PrivateSubnetB:
       Type: AWS::EC2::Subnet
       Properties: 
-        AvailabilityZone: !Select [ 3, !GetAZs '' ]
+        AvailabilityZone: eu-west-1b
         CidrBlock: !Ref PrivateSubnetBCIDR
         MapPublicIpOnLaunch: false
         Tags: 
@@ -219,7 +219,7 @@ Resources:
    PrivateDBSubnetA:
       Type: AWS::EC2::Subnet
       Properties: 
-        AvailabilityZone: !Select [ 1, !GetAZs '' ]
+        AvailabilityZone: eu-west-1a
         CidrBlock: !Ref PrivateDBSubnetACIDR
         MapPublicIpOnLaunch: false
         Tags: 
@@ -230,7 +230,7 @@ Resources:
    PrivateDBSubnetB:
       Type: AWS::EC2::Subnet
       Properties: 
-        AvailabilityZone: !Select [ 3, !GetAZs '' ]
+        AvailabilityZone: eu-west-1b
         CidrBlock: !Ref PrivateDBSubnetBCIDR
         MapPublicIpOnLaunch: false
         Tags: 
@@ -246,7 +246,7 @@ Resources:
         Domain: VPC
         Tags: 
           - Key: Name
-            Value: EIP A
+            Value: PROD EIP A
 
    NatGatewayBEIP:
       Type: AWS::EC2::EIP
@@ -254,7 +254,7 @@ Resources:
         Domain: VPC
         Tags: 
           - Key: Name
-            Value: EIP B
+            Value: PROD EIP B
 
    NatGatewayA:
       Type: AWS::EC2::NatGateway
@@ -263,7 +263,7 @@ Resources:
         SubnetId: !Ref PublicSubnetA
         Tags: 
           - Key: Name
-            Value: NatGateway public sabnet A 
+            Value: PROD NatGateway public sabnet A 
 
    NatGatewayB:
       Type: AWS::EC2::NatGateway
@@ -272,14 +272,14 @@ Resources:
         SubnetId: !Ref PublicSubnetB
         Tags: 
           - Key: Name
-            Value: NatGateway public sabnet B
+            Value: PROD NatGateway public sabnet B
 
    PrivateRouteTableA:
       Type: AWS::EC2::RouteTable
       Properties:
          Tags:
            - Key: Name
-             Value: Private route table A
+             Value: PROD Private route table A
          VpcId: !Ref VPC
 
    PrivateRouteTableB:
@@ -287,7 +287,7 @@ Resources:
       Properties:
          Tags:
            - Key: Name
-             Value: Private route table B
+             Value: PROD Private route table B
          VpcId: !Ref VPC
 
    PrivateRouteA:
@@ -345,7 +345,7 @@ Resources:
               CidrIp: 0.0.0.0/0  
           Tags: 
             - Key: Name 
-              Value: Application Load Balancer SecurityGroup
+              Value: PROD Application Load Balancer SecurityGroup
           VpcId: !Ref VPC
 
   #============================================================================#
@@ -370,7 +370,7 @@ Resources:
               CidrIp: 0.0.0.0/0
           Tags: 
             - Key: Name 
-              Value: Jump Box SecurityGroup
+              Value: PROD Jump Box SecurityGroup
           VpcId: !Ref VPC
 
    SSHSecurityGroup:
@@ -388,7 +388,7 @@ Resources:
               CidrIp: 0.0.0.0/0
           Tags: 
             - Key: Name 
-              Value: Restricted SSH SecurityGroup
+              Value: PROD Restricted SSH SecurityGroup
           VpcId: !Ref VPC 
   #============================================================================#
   # Web server security group
@@ -416,7 +416,7 @@ Resources:
               CidrIp: 0.0.0.0/0
           Tags: 
             - Key: Name 
-              Value: Web Server SecurityGroup
+              Value: PROD Web Server SecurityGroup
           VpcId: !Ref VPC
 
   #============================================================================#
@@ -437,7 +437,7 @@ Resources:
               CidrIp: 0.0.0.0/0 # replace this with Bastion(jump box) IP address /32
           Tags: 
             - Key: Name 
-              Value: Database SecurityGroup
+              Value: PROD Database SecurityGroup
           VpcId: !Ref VPC 
 #====================ACLs================================  
   # Public Network ACL

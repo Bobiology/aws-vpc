@@ -35,7 +35,7 @@ Resources:
        Properties:
           DistributionConfig:
              Origins:
-              - DomainName: prod-dukapepe-S3-storage.s3.us-west-2.amazonaws.com
+              - DomainName: prod-dukapepe-S3-storage.s3.eu-west-1.amazonaws.com
                 Id: S3-private-bucket
                 S3OriginConfig:
                   OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudFrontOriginIdentity}'
