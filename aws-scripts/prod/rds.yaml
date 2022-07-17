@@ -85,15 +85,18 @@ Parameters:
 
    DatabaseInstanceClass:
       AllowedValues:
-        - db.t1.micro
         - db.t2.micro
-        - db.m1.small
-        - db.m1.medium
-        - db.m1.large
-        - db.t4g.xlarge
-        - db.t4g.2xlarge
+        - db.t2.medium
+        - db.t2.large
+        - db.t2.xlarge  
+        - db.t2.2xlarge
+        - db.t3.large
+        - db.t3.xlarge
+        - db.t3.2xlarge
+        - db.m5.large
+        - db.m5.xlarge
       ConstraintDescription: Select valid database instance type
-      Default: db.t2.xlarge
+      Default: db.t2.xlarge 
       Description: The database instance type
       Type: String
 
@@ -116,13 +119,13 @@ Resources:
          - Fn::ImportValue: !Sub ${ExportVpcStackName}-PrivateDBSubnetB
        Tags:
          - Key: Name
-           Value: Database subnets
+           Value: Prod Database subnets
 
    DatabaseInstance:
      Type: AWS::RDS::DBInstance
      Properties:
        AllocatedStorage: !Ref DatabaseAllocatedStorage
-       AvailabilityZone: eu-west-1b #!Select [ 3, !GetAZs '' ]
+       #AvailabilityZone: us-west-2b #!Select [ 3, !GetAZs '' ]
        BackupRetentionPeriod: !Ref DatabaseAllocatedStorage
        DBInstanceClass: !Ref DatabaseInstanceClass
        DBInstanceIdentifier: !Ref DatabaseInstanceIdentifier
@@ -134,4 +137,4 @@ Resources:
        MasterUserPassword: !Ref DatabasePassword
        MultiAZ: !Ref MultiAZDatabase
        VPCSecurityGroups:
-         - Fn::ImportValue: !Sub ${ExportVpcStackName}-DatabaseSecurityGroup
+         - Fn::ImportValue: !Sub ${ExportVpcStackName}-ProdDatabaseSecurityGroup

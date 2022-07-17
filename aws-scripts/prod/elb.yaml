@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 
-Description: Create applocation load balancer
+Description: Create Prod application load balancer
 #=========================================
 Metadata:
   AWS::CloudFormation::Interface: 
@@ -27,7 +27,7 @@ Parameters:
   AcmCertificate:
     Description: Certificate's ARN
     Type: String
-    Default: arn:aws:acm:eu-west-1:053099938908:certificate/7ab32a59-acb2-426a-a0b7-700267d3b55b
+    Default: arn:aws:acm:eu-west-1:553469508124:certificate/b283cc29-e955-444e-b989-ebcfbf7fd9fe
 
   ExportVpcStackName:
     Description: Name of the VPC that exports values
@@ -53,24 +53,24 @@ Parameters:
   AmazonImageID:
     Description: The ID of the Amazon machine image (AMI)
     Type: String
-    Default: ami-0ca285d4c2cda3300
+    Default: ami-0d71ea30463e0ff8d
 
 
 #=========================================
 Resources:
 #Create an Application Load Balancer
-  ApplicationLoadBalancer:
+  ProdApplicationLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
-      Name: ApplicationLoadBalancer
+      Name: ProdApplicationLoadBalancer
       SecurityGroups: 
-        - Fn::ImportValue: !Sub ${ExportVpcStackName}-ApplicationLBSecurityGroup
+        - Fn::ImportValue: !Sub ${ExportVpcStackName}-ProdApplicationLBSecurityGroup
       Subnets: 
          - Fn::ImportValue: !Sub ${ExportVpcStackName}-PublicSubnetA
          - Fn::ImportValue: !Sub ${ExportVpcStackName}-PublicSubnetB
 
 #Create a Listener on Port 80
-  ALBListenerNoSslCertificate:
+  ProdALBListenerNoSslCertificate:
     Type: 'AWS::ElasticLoadBalancingV2::Listener'
     Properties:
       DefaultActions:
@@ -81,34 +81,34 @@ Resources:
             Protocol: HTTPS
             StatusCode: HTTP_301
           Type: redirect
-      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      LoadBalancerArn: !Ref ProdApplicationLoadBalancer
       Port: 80
       Protocol: HTTP
 
 #Create a Listener on Port 443
-  ALBListenerSslCertificate:
+  ProdALBListenerSslCertificate:
     Type : AWS::ElasticLoadBalancingV2::Listener
     Properties:
       Certificates: 
         - CertificateArn: !Ref AcmCertificate
       DefaultActions:
         - Type: forward
-          TargetGroupArn: !Ref ALBTargetGroup
-      LoadBalancerArn: !Ref ApplicationLoadBalancer
+          TargetGroupArn: !Ref ProdALBTargetGroup
+      LoadBalancerArn: !Ref ProdApplicationLoadBalancer
       Port: 443
       Protocol: HTTPS
 
 # Create a Target Group
-  ALBTargetGroup:
+  ProdALBTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
-      HealthCheckIntervalSeconds: 10
+      HealthCheckIntervalSeconds: 60
       HealthCheckPath: /
-      HealthCheckTimeoutSeconds: 5
+      HealthCheckTimeoutSeconds: 10
       HealthyThresholdCount: 2
       Matcher:
         HttpCode: 200,302
-      Name: WebServers
+      Name: ProdWebServers
       Port: 80
       Protocol: HTTP
       #Targets:
@@ -126,12 +126,12 @@ Resources:
       SubnetId:
         Fn::ImportValue: !Sub ${ExportVpcStackName}-PublicSubnetA
       SecurityGroupIds:
-        - Fn::ImportValue: !Sub ${ExportVpcStackName}-JumpBoxSecurityGroup
+        - Fn::ImportValue: !Sub ${ExportVpcStackName}-ProdJumpBoxSecurityGroup
       KeyName: !Ref KeyName
       ImageId: !Ref AmazonImageID 
       Tags:
         - Key: Name
-          Value: Public Subnet A | Prod Jump Box
+          Value: Prod Public Subnet A | Jump Box
       UserData:
         Fn::Base64:
           !Sub |
@@ -143,22 +143,22 @@ Resources:
 #=========================================
 Outputs:
 # Export Target Group
-  ALBTargetGroup:
+  ProdALBTargetGroup:
     Description: Export web server TargetGroup
     Export:
-      Name: !Sub ${AWS::StackName}-ALBTargetGroup
-    Value: !Ref ALBTargetGroup
+      Name: !Sub ${AWS::StackName}-ProdALBTargetGroup
+    Value: !Ref ProdALBTargetGroup
 
 # Export Application Load Balancer Dns Name
-  ApplicationLoadBalancerDnsName:
+  ProdApplicationLoadBalancerDnsName:
     Description: Export Application LoadBalancer DNS Name
     Export:
-      Name: !Sub ${AWS::StackName}-ApplicationLoadBalancerDnsName
-    Value: !GetAtt ApplicationLoadBalancer.DNSName
+      Name: !Sub ${AWS::StackName}-ProdApplicationLoadBalancerDnsName
+    Value: !GetAtt ProdApplicationLoadBalancer.DNSName
 
 # Export Application Load Balancer Zone ID
-  ApplicationLoadBalancerZoneID:
+  ProdApplicationLoadBalancerZoneID:
     Description: Export Application LoadBalancer ZoneID
     Export:
-      Name: !Sub ${AWS::StackName}-ApplicationLoadBalancerZoneID
-    Value: !GetAtt ApplicationLoadBalancer.CanonicalHostedZoneID
+      Name: !Sub ${AWS::StackName}-ProdApplicationLoadBalancerZoneID
+    Value: !GetAtt ProdApplicationLoadBalancer.CanonicalHostedZoneID

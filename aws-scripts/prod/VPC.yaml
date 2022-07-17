@@ -83,7 +83,7 @@ Parameters:
 
     Owner:
       Type: String
-      Default: Dukapepe Limited
+      Default: Dukapepe
 
     DeleteAfter:
       Type: String
@@ -91,7 +91,7 @@ Parameters:
 
     Project:
       Type: String
-      Default: MigrationToCloud
+      Default: Security and Scalability Project 
 
 
 Resources:
@@ -154,7 +154,7 @@ Resources:
       Properties: 
         Tags: 
           - Key: Name
-            Value: PROD Public routing table A
+            Value: Public PROD routing table A
         VpcId: !Ref VPC 
 
    PublicRoutingBTable:
@@ -162,7 +162,7 @@ Resources:
       Properties: 
         Tags: 
           - Key: Name
-            Value: PROD Public routing table B
+            Value: Public routing table B
         VpcId: !Ref VPC 
 
    PublicRouteA:
@@ -330,7 +330,7 @@ Resources:
   #============================================================================#
   # LB security group
   #============================================================================#
-   ApplicationLBSecurityGroup:
+   ProdApplicationLBSecurityGroup:
         Type: AWS::EC2::SecurityGroup
         Properties: 
           GroupDescription: Enable HTTP and HTTPS access via port 80 and 443
@@ -351,7 +351,7 @@ Resources:
   #============================================================================#
   # SSH security group
   #============================================================================#
-   JumpBoxSecurityGroup:
+   ProdJumpBoxSecurityGroup:
         Type: AWS::EC2::SecurityGroup
         Properties: 
           GroupDescription: Enable SSH access via port 22
@@ -373,7 +373,7 @@ Resources:
               Value: PROD Jump Box SecurityGroup
           VpcId: !Ref VPC
 
-   SSHSecurityGroup:
+   ProdSSHSecurityGroup:
         Type: AWS::EC2::SecurityGroup
         Properties: 
           GroupDescription: Enable SSH access via port 22
@@ -393,7 +393,7 @@ Resources:
   #============================================================================#
   # Web server security group
   #============================================================================#
-   WebserverSecurityGroup:
+   ProdWebserverSecurityGroup:
         Type: AWS::EC2::SecurityGroup
         Properties: 
           GroupDescription: Accept traffic from ALB 
@@ -401,11 +401,11 @@ Resources:
             - IpProtocol: tcp 
               FromPort: 80
               ToPort: 80
-              SourceSecurityGroupId: !Ref ApplicationLBSecurityGroup
+              SourceSecurityGroupId: !Ref ProdApplicationLBSecurityGroup
             - IpProtocol: tcp 
               FromPort: 443
               ToPort: 443
-              SourceSecurityGroupId: !Ref ApplicationLBSecurityGroup  
+              SourceSecurityGroupId: !Ref ProdApplicationLBSecurityGroup  
             - IpProtocol: tcp 
               FromPort: 22
               ToPort: 22
@@ -422,7 +422,7 @@ Resources:
   #============================================================================#
   # Database security group
   #============================================================================#
-   DatabaseSecurityGroup:
+   ProdDatabaseSecurityGroup:
         Type: AWS::EC2::SecurityGroup
         Properties: 
           GroupDescription: Enable access to the database
@@ -430,7 +430,7 @@ Resources:
             - IpProtocol: tcp 
               FromPort: 3306
               ToPort: 3306
-              SourceSecurityGroupId: !Ref WebserverSecurityGroup
+              SourceSecurityGroupId: !Ref ProdWebserverSecurityGroup
             - IpProtocol: tcp 
               FromPort: 3306
               ToPort: 3306
@@ -525,35 +525,35 @@ Outputs:
        Name: !Sub ${AWS::StackName}-PrivateDBSubnetB
      Value: !Ref PrivateDBSubnetB
 
-   ApplicationLBSecurityGroup:
+   ProdApplicationLBSecurityGroup:
      Description: Export Application LB Security Group ID 
      Export:
-       Name: !Sub ${AWS::StackName}-ApplicationLBSecurityGroup
-     Value: !Ref ApplicationLBSecurityGroup
+       Name: !Sub ${AWS::StackName}-ProdApplicationLBSecurityGroup
+     Value: !Ref ProdApplicationLBSecurityGroup
 
-   SSHSecurityGroup:
+   ProdSSHSecurityGroup:
      Description: Export SSH SecurityGroup ID 
      Export:
-       Name: !Sub ${AWS::StackName}-SSHSecurityGroup
-     Value: !Ref SSHSecurityGroup
+       Name: !Sub ${AWS::StackName}-ProdSSHSecurityGroup
+     Value: !Ref ProdSSHSecurityGroup
 
-   WebserverSecurityGroup:
+   ProdWebserverSecurityGroup:
      Description: Export Web server SecurityGroup ID 
      Export:
-       Name: !Sub ${AWS::StackName}-WebserverSecurityGroup
-     Value: !Ref WebserverSecurityGroup      
+       Name: !Sub ${AWS::StackName}-ProdWebserverSecurityGroup
+     Value: !Ref ProdWebserverSecurityGroup      
 
-   DatabaseSecurityGroup:
+   ProdDatabaseSecurityGroup:
      Description: Export Database SecurityGroup ID 
      Export:
-       Name: !Sub ${AWS::StackName}-DatabaseSecurityGroup
-     Value: !Ref DatabaseSecurityGroup
+       Name: !Sub ${AWS::StackName}-ProdDatabaseSecurityGroup
+     Value: !Ref ProdDatabaseSecurityGroup
 
-   JumpBoxSecurityGroup:
+   ProdJumpBoxSecurityGroup:
      Description: Export JumpBox SecurityGroup ID 
      Export:
-       Name: !Sub ${AWS::StackName}-JumpBoxSecurityGroup
-     Value: !Ref JumpBoxSecurityGroup
+       Name: !Sub ${AWS::StackName}-ProdJumpBoxSecurityGroup
+     Value: !Ref ProdJumpBoxSecurityGroup
 
 
 

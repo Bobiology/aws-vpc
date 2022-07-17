@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 
-Description: Create auto scalling group
+Description: Create uto scalling group
 #==================================================
 Metadata:
   AWS::CloudFormation::Interface: 
@@ -12,7 +12,7 @@ Metadata:
           - ExportVpcStackName
       - 
         Label: 
-          default: Export Application Laod Balancer Stack Name
+          default: Export Application Laod Bbalancer Stack Name
         Parameters:
           - ExportAlbStackName
       - 
@@ -29,7 +29,7 @@ Metadata:
         Label: 
           default: Launch Template Name
         Parameters:
-          - WebServerLaunchTemplateName
+          - ProdWebServerLaunchTemplateName
       - 
         Label: 
           default: Instance Type
@@ -66,12 +66,12 @@ Parameters:
   EC2ImageID:
     Description: The ID of the custom AMI
     Type: String
-    Default: ami-0ca285d4c2cda3300
+    Default: ami-0d71ea30463e0ff8d
 
-  WebServerLaunchTemplateName:
+  ProdWebServerLaunchTemplateName:
     AllowedPattern: '[a-zA-Z0-9\(\)\.\-/_]+'
     ConstraintDescription: Must be unique to this account.
-    Default: Lamp-Server-Launch-Template
+    Default: Prod-Lamp-Server-Launch-Template
     Description: Name of launch template
     Type: String
 
@@ -83,35 +83,35 @@ Parameters:
       - t1.micro
       - t2.nano
       - t2.micro
-      - t2.small
       - t2.medium
       - t2.large
       - t2.xlarge
     ConstraintDescription: Must be a valid EC2 instance type.
 
+#==================================================
 Resources:
-  WebappApplication:
+  ProdWebappApplication:
     Type: "AWS::CodeDeploy::Application" 
     Properties: 
       ApplicationName: DukapepeApp
       Tags: 
         - Key: Name
-          Value: Dukapepe Backend App
+          Value: Prod Application
 
-  WebappDeploymentGroup:
+  ProdWebappDeploymentGroup:
     Type: "AWS::CodeDeploy::DeploymentGroup"
     Properties:
-      ApplicationName: WebServerAutoScalingGroup
-      ApplicationName: !Ref WebappApplication
-      ServiceRoleArn: !GetAtt CodeDeployRole.Arn
+      ApplicationName: ProdWebServerAutoScalingGroup
+      ApplicationName: !Ref ProdWebappApplication
+      ServiceRoleArn: !GetAtt ProdCodeDeployRole.Arn
       DeploymentConfigName: CodeDeployDefault.AllAtOnce
       AutoScalingGroups:
-      - Ref: WebServerAutoScalingGroup
+      - Ref: ProdWebServerAutoScalingGroup
 
-  WebappDeploymentBucket:
+  ProdWebappDeploymentBucket:
     Type: "AWS::S3::Bucket"
     Properties:
-      BucketName: prod-dukapepe-bucket
+      BucketName: dukapepe-prod-codedeploy-s3-bucket
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -119,14 +119,14 @@ Resources:
         RestrictPublicBuckets: true
       Tags:
         - Key: Name
-          Value: Code deploy S3 storage
+          Value: Prod-Code deploy S3 storage
       VersioningConfiguration:
         Status: Enabled
 
-  CodeDeployRole:
+  ProdCodeDeployRole:
     Type: "AWS::IAM::Role"
     Properties:
-      RoleName: CodeDeployRole
+      RoleName: ProdCodeDeployRole
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -149,10 +149,10 @@ Resources:
                   - ec2:*
                   - autoscaling:*
                 Resource: "*"
-  WebappRole:
+  ProdWebappRole:
     Type: "AWS::IAM::Role"
     Properties:
-      RoleName: WebappRole
+      RoleName: ProdWebappRole
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -173,22 +173,22 @@ Resources:
               -
                 Effect: "Allow"
                 Action: "s3:getObject"
-                Resource: !Sub arn:aws:s3:::${WebappDeploymentBucket}/*
+                Resource: !Sub arn:aws:s3:::${ProdWebappDeploymentBucket}/*
 
-  WebappInstanceProfile:
+  ProdWebappInstanceProfile:
     Type: "AWS::IAM::InstanceProfile"
     Properties:
       Roles: 
-        - Ref: WebappRole
+        - Ref: ProdWebappRole
 
-  WebServerLaunchTemplate:
+  ProdWebServerLaunchTemplate:
     Type: AWS::EC2::LaunchTemplate
     Properties:
-      LaunchTemplateName: !Ref WebServerLaunchTemplateName
+      LaunchTemplateName: !Ref ProdWebServerLaunchTemplateName
       LaunchTemplateData:
         IamInstanceProfile:
           Arn: !GetAtt
-            - WebappInstanceProfile
+            - ProdWebappInstanceProfile
             - Arn
         ImageId: !Ref EC2ImageID
         InstanceType: !Ref InstanceType
@@ -199,8 +199,16 @@ Resources:
               #!/bin/bash -xe
               sudo su
               yum update -y
-              yum install -y wget telnet
+              yum install -y httpd wget telnet
+              service httpd start
               yum install ruby -y 
+              yum install -y amazon-linux-extras
+              amazon-linux-extras enable php7.4
+              yum clean metadata
+              yum install -y php-cli php-pdo php-fpm php-json php-mysqlnd php-curl php-mbstring php-intl php-opcache php-soap php-gd php-xml php-mysqli
+              echo "<?php phpinfo(); ?>" > /var/www/html/phpinfo.php
+              echo "<html><body><b>Hello HTML</b></body></html>" > /var/www/html/index.html
+              service httpd restart
               wget https://aws-codedeploy-${AWS::Region}.s3.${AWS::Region}.amazonaws.com/latest/install
               chmod +x ./install
               ./install auto
@@ -211,7 +219,7 @@ Resources:
         Monitoring:
           Enabled: true
         SecurityGroupIds:
-          - Fn::ImportValue: !Sub ${ExportVpcStackName}-WebserverSecurityGroup
+          - Fn::ImportValue: !Sub ${ExportVpcStackName}-ProdWebserverSecurityGroup
 
 
   NotificationTopic:
@@ -222,27 +230,27 @@ Resources:
           Protocol: email
 
 #web server - public
-  WebServerAutoScalingGroup:
+  ProdWebServerAutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
-      AutoScalingGroupName: WebServerAutoScalingGroup
+      AutoScalingGroupName: ProdWebServerAutoScalingGroup
       VPCZoneIdentifier:
         - Fn::ImportValue: !Sub ${ExportVpcStackName}-PrivateSubnetA
         - Fn::ImportValue: !Sub ${ExportVpcStackName}-PrivateSubnetB
       HealthCheckGracePeriod: 300
       HealthCheckType: ELB
       LaunchTemplate:
-        LaunchTemplateName: !Ref WebServerLaunchTemplateName
-        Version: !GetAtt WebServerLaunchTemplate.LatestVersionNumber
+        LaunchTemplateName: !Ref ProdWebServerLaunchTemplateName
+        Version: !GetAtt ProdWebServerLaunchTemplate.LatestVersionNumber
       MinSize: 2
-      MaxSize: 4
+      MaxSize: 10
       DesiredCapacity: 2
       Tags:
         - Key: Name
-          Value: WebServers
+          Value: ProdWebServers
           PropagateAtLaunch: true
       TargetGroupARNs:
-        - Fn::ImportValue: !Sub ${ExportAlbStackName}-ALBTargetGroup
+        - Fn::ImportValue: !Sub ${ExportAlbStackName}-ProdALBTargetGroup
       NotificationConfiguration:
         TopicARN: !Ref NotificationTopic
         NotificationTypes:
@@ -251,19 +259,19 @@ Resources:
           - 'autoscaling:EC2_INSTANCE_TERMINATE'
           - 'autoscaling:EC2_INSTANCE_TERMINATE_ERROR'
 
-  WebServerScaleUpPolicy:
+  ProdWebServerScaleUpPolicy:
     Type: AWS::AutoScaling::ScalingPolicy
     Properties:
       AdjustmentType: ChangeInCapacity
-      AutoScalingGroupName: !Ref WebServerAutoScalingGroup
+      AutoScalingGroupName: !Ref ProdWebServerAutoScalingGroup
       Cooldown: 60
       ScalingAdjustment: 1
 
-  WebServerScaleDownPolicy:
+  ProdWebServerScaleDownPolicy:
     Type: 'AWS::AutoScaling::ScalingPolicy'
     Properties:
       AdjustmentType: ChangeInCapacity
-      AutoScalingGroupName: !Ref WebServerAutoScalingGroup
+      AutoScalingGroupName: !Ref ProdWebServerAutoScalingGroup
       Cooldown: 60
       ScalingAdjustment: -1
 
@@ -278,10 +286,10 @@ Resources:
       EvaluationPeriods: 2
       Threshold: 90
       AlarmActions:
-        - !Ref WebServerScaleUpPolicy
+        - !Ref ProdWebServerScaleUpPolicy
       Dimensions:
         - Name: AutoScalingGroupName
-          Value: !Ref WebServerAutoScalingGroup
+          Value: !Ref ProdWebServerAutoScalingGroup
       ComparisonOperator: GreaterThanThreshold
 
   CPUAlarmLow:
@@ -295,9 +303,9 @@ Resources:
       EvaluationPeriods: 2
       Threshold: 70
       AlarmActions:
-        - !Ref WebServerScaleDownPolicy
+        - !Ref ProdWebServerScaleDownPolicy
       Dimensions:
         - Name: AutoScalingGroupName
-          Value: !Ref WebServerAutoScalingGroup
+          Value: !Ref ProdWebServerAutoScalingGroup
       ComparisonOperator: LessThanThreshold
 #==================================================

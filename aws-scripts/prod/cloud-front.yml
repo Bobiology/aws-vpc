@@ -4,7 +4,7 @@ Resources:
         Type: AWS::S3::Bucket
         Properties:
             AccessControl: Private
-            BucketName: prod-dukapepe-S3-storage
+            BucketName: dukapepe-prod-s3-general-storage
             VersioningConfiguration:
                Status: Enabled
             Tags:
@@ -20,7 +20,7 @@ Resources:
     BucketPolicy:
        Type: AWS::S3::BucketPolicy
        Properties:
-          Bucket: prod-dukapepe-S3-storage
+          Bucket: dukapepe-prod-s3-general-storage
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
@@ -28,14 +28,14 @@ Resources:
                  Principal:
                    AWS: !Sub 'arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontOriginIdentity}'
                  Action: 's3:GetObject'
-                 Resource: arn:aws:s3:::prod-dukapepe-S3-storage/*
+                 Resource: arn:aws:s3:::dukapepe-prod-s3-general-storage/*
 
     PublicDistribution:
        Type: AWS::CloudFront::Distribution
        Properties:
           DistributionConfig:
              Origins:
-              - DomainName: prod-dukapepe-S3-storage.s3.eu-west-1.amazonaws.com
+              - DomainName: dukapepe-prod-s3-general-storage.s3.us-west-2.amazonaws.com
                 Id: S3-private-bucket
                 S3OriginConfig:
                   OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudFrontOriginIdentity}'
