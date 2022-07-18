@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 
-Description: Create uto scalling group
+Description: Create auto scalling group
 #==================================================
 Metadata:
   AWS::CloudFormation::Interface: 
@@ -228,6 +228,14 @@ Resources:
       Subscription:
         - Endpoint: !Ref OperatorEMail
           Protocol: email
+
+  BlockDeviceMappings:
+  - DeviceName: /dev/xvdcz
+    Ebs:
+      VolumeSize: 50
+      VolumeType: gp2
+      DeleteOnTermination: true
+      Encrypted: true
 
 #web server - public
   ProdWebServerAutoScalingGroup:

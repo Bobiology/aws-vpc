@@ -101,24 +101,24 @@ Resources:
 # Create a Target Group
   ProdALBTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    Properties:
-      HealthCheckIntervalSeconds: 60
-      HealthCheckPath: /
-      HealthCheckTimeoutSeconds: 10
-      HealthyThresholdCount: 2
-      Matcher:
-        HttpCode: 200,302
-      Name: ProdWebServers
-      Port: 80
-      Protocol: HTTP
-      #Targets:
-      #  - Id: !Ref EC2InstanceA
-      #    Port: 80
-      TargetType: instance
-      UnhealthyThresholdCount: 5
-      VpcId: 
-         Fn::ImportValue: !Sub ${ExportVpcStackName}-VPC
-
+      Properties: 
+        HealthCheckIntervalSeconds: 60
+        HealthCheckPath: /index1.html
+        HealthCheckTimeoutSeconds: 60
+        HealthyThresholdCount: 2
+        Matcher: 
+          HttpCode: 200,302
+        Name: ProdWebServers
+        Port: 80
+        Protocol: HTTP
+        #Targets: 
+        # - id: !Ref EC2InstanceA
+        #  - port: 80
+        TargetType: instance
+        UnhealthyThresholdCount: 5
+        VpcId: 
+          Fn::ImportValue: !Sub ${ExportVpcStackName}-VPC
+          
   EC2InstanceB:
     Type: AWS::EC2::Instance
     Properties:
